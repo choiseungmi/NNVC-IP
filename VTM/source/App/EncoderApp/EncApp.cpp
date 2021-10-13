@@ -922,6 +922,22 @@ void EncApp::xCreateLib( std::list<PelUnitBuf*>& recBufList, const int layerId )
       }
     }
     m_cVideoIOYuvReconFile.open( reconFileName, true, m_outputBitDepth, m_outputBitDepth, m_internalBitDepth );  // write mode
+
+    std::string reconIPFileName = m_reconIPFileName;
+    if (m_reconIPFileName.compare("/dev/null") && (m_maxLayers > 1))
+    {
+      size_t posIP = reconIPFileName.find_last_of('.');
+      if (posIP != string::npos)
+      {
+        reconIPFileName.insert(posIP, std::to_string(layerId));
+      }
+      else
+      {
+        reconIPFileName.append(std::to_string(layerId));
+      }
+    }
+    m_cVideoIOYuvIntraPredReconFile.open(reconIPFileName, true, m_outputBitDepth, m_outputBitDepth,
+                                         m_internalBitDepth);   // write mode
   }
 
   // create the encoder

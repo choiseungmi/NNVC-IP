@@ -71,6 +71,7 @@ private:
   EncLib            m_cEncLib;                    ///< encoder class
   VideoIOYuv        m_cVideoIOYuvInputFile;       ///< input YUV file
   VideoIOYuv        m_cVideoIOYuvReconFile;       ///< output reconstruction file
+  VideoIOYuv        m_cVideoIOYuvIntraPredReconFile; //< output IntraPrediction reconstruction file
   int               m_iFrameRcvd;                 ///< number of received frames
   uint32_t          m_essentialBytes;
   uint32_t          m_totalBytes;
