@@ -955,6 +955,7 @@ void EncApp::xDestroyLib()
   // Video I/O
   m_cVideoIOYuvInputFile.close();
   m_cVideoIOYuvReconFile.close();
+  m_cVideoIOYuvIntraPredReconFile.close();
 
   // Neo Decoder
   m_cEncLib.destroy();
@@ -1204,6 +1205,71 @@ void EncApp::xWriteOutput( int iNumEncoded, std::list<PelUnitBuf*>& recBufList )
   }
 }
 
+void EncApp::xWriteIPOutput(int iNumEncoded, std::list<PelUnitBuf *> &recBufList)
+{
+  const InputColourSpaceConversion ipCSC =
+    (!m_outputInternalColourSpace) ? m_inputColourSpaceConvert : IPCOLOURSPACE_UNCHANGED;
+  std::list<PelUnitBuf *>::iterator iterPicYuvRec = recBufList.end();
+  int                               i;
+
+  for (i = 0; i < iNumEncoded; i++)
+  {
+    --iterPicYuvRec;
+  }
+
+  if (m_isField)
+  {
+    // Reinterlace fields
+    for (i = 0; i < iNumEncoded / 2; i++)
+    {
+      const PelUnitBuf *pcPicYuvRecTop    = *(iterPicYuvRec++);
+      const PelUnitBuf *pcPicYuvRecBottom = *(iterPicYuvRec++);
+
+      if (!m_reconFileName.empty())
+      {
+        m_cVideoIOYuvIntraPredReconFile.write(*pcPicYuvRecTop, *pcPicYuvRecBottom, ipCSC,
+                                     false,   // TODO: m_packedYUVMode,
+                                     m_confWinLeft, m_confWinRight, m_confWinTop, m_confWinBottom, NUM_CHROMA_FORMAT,
+                                     m_isTopFieldFirst);
+      }
+    }
+  }
+  else
+  {
+    for (i = 0; i < iNumEncoded; i++)
+    {
+      const PelUnitBuf *pcPicYuvRec = *(iterPicYuvRec++);
+      if (!m_reconIPFileName.empty())
+      {
+#if JVET_R0058
+        if (m_cEncLib.isResChangeInClvsEnabled() && m_cEncLib.getUpscaledOutput())
+#else
+        if (m_cEncLib.isRPREnabled() && m_cEncLib.getUpscaledOutput())
+#endif
+        {
+          const SPS &sps = *m_cEncLib.getSPS(0);
+          const PPS &pps =
+            *m_cEncLib.getPPS((sps.getMaxPicWidthInLumaSamples() != pcPicYuvRec->get(COMPONENT_Y).width
+                               || sps.getMaxPicHeightInLumaSamples() != pcPicYuvRec->get(COMPONENT_Y).height)
+                                ? ENC_PPS_ID_RPR
+                                : 0);
+
+          m_cVideoIOYuvIntraPredReconFile.writeUpscaledPicture(sps, pps, *pcPicYuvRec, ipCSC, m_packedYUVMode,
+                                                      m_cEncLib.getUpscaledOutput(), NUM_CHROMA_FORMAT,
+                                                      m_bClipOutputVideoToRec709Range);
+        }
+        else
+        {
+          m_cVideoIOYuvIntraPredReconFile.write(pcPicYuvRec->get(COMPONENT_Y).width,
+                                                pcPicYuvRec->get(COMPONENT_Y).height,
+                                       *pcPicYuvRec, ipCSC, m_packedYUVMode, m_confWinLeft, m_confWinRight,
+                                       m_confWinTop, m_confWinBottom, NUM_CHROMA_FORMAT,
+                                       m_bClipOutputVideoToRec709Range);
+        }
+      }
+    }
+  }
+}
 
 void EncApp::outputAU( const AccessUnit& au )
 {
