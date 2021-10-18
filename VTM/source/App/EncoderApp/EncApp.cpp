@@ -1225,7 +1225,7 @@ void EncApp::xWriteIPOutput(int iNumEncoded, std::list<PelUnitBuf *> &recBufList
       const PelUnitBuf *pcPicYuvRecTop    = *(iterPicYuvRec++);
       const PelUnitBuf *pcPicYuvRecBottom = *(iterPicYuvRec++);
 
-      if (!m_reconFileName.empty())
+      if (!m_reconIPFileName.empty())
       {
         m_cVideoIOYuvIntraPredReconFile.write(*pcPicYuvRecTop, *pcPicYuvRecBottom, ipCSC,
                                      false,   // TODO: m_packedYUVMode,
