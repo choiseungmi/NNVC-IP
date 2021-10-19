@@ -282,7 +282,7 @@ typedef std::pair<int, int>  TrCost;
 // TODO: rename this macro to DECODER_DEBUG_BIT_STATISTICS (may currently cause merge issues with other branches)
 // This can be enabled by the makefile
 #ifndef RExt__DECODER_DEBUG_BIT_STATISTICS
-#define RExt__DECODER_DEBUG_BIT_STATISTICS                0 ///< 0 (default) = decoder reports as normal, 1 = decoder produces bit usage statistics (will impact decoder run time by up to ~10%)
+#define RExt__DECODER_DEBUG_BIT_STATISTICS                1 ///< 0 (default) = decoder reports as normal, 1 = decoder produces bit usage statistics (will impact decoder run time by up to ~10%)
 #endif
 
 #ifndef RExt__DECODER_DEBUG_TOOL_MAX_FRAME_STATS
@@ -293,7 +293,7 @@ typedef std::pair<int, int>  TrCost;
 #define EPBINCOUNT_FIX                                   (1 && RExt__DECODER_DEBUG_BIT_STATISTICS )   ///< 0 use count to represent number of calls to decodeBins. 1 = count and bins for EP bins are the same.
 
 #ifndef RExt__DECODER_DEBUG_TOOL_STATISTICS
-#define RExt__DECODER_DEBUG_TOOL_STATISTICS               0 ///< 0 (default) = decoder reports as normal, 1 = decoder produces tool usage statistics
+#define RExt__DECODER_DEBUG_TOOL_STATISTICS               1 ///< 0 (default) = decoder reports as normal, 1 = decoder produces tool usage statistics
 #endif
 
 #if RExt__DECODER_DEBUG_BIT_STATISTICS || RExt__DECODER_DEBUG_TOOL_STATISTICS
