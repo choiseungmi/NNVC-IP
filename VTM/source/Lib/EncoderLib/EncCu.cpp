@@ -253,6 +253,61 @@ void EncCu::init( EncLib* pcEncLib, const SPS& sps PARL_PARAM( const int tId ) )
 // Public member functions
 // ====================================================================================================================
 
+
+inline pair<bool, Position> isAboveAvailable(const CodingUnit &cu, const ChannelType &chType, const Position &posLT,
+                            const uint32_t uiNumUnitsInPU, const uint32_t unitWidth, bool *validFlags);
+inline pair<bool, Position> isLeftAvailable(const CodingUnit &cu, const ChannelType &chType, const Position &posLT,
+                           const uint32_t uiNumUnitsInPU, const uint32_t unitWidth, bool *validFlags);
+
+pair<bool, Position> isAboveAvailable(const CodingUnit &cu, const ChannelType &chType, const Position &posLT,
+                     const uint32_t uiNumUnitsInPU, const uint32_t unitWidth)
+{
+  const CodingStructure &cs = *cu.cs;
+
+  bool available   = true;
+  const int maxDx      = uiNumUnitsInPU * unitWidth;
+  Position refPos;
+
+  for (int dx = 0; dx < maxDx; dx += unitWidth)
+  {
+    refPos = posLT.offset(dx, -1);
+
+    if (!cs.isDecomp(refPos, chType))
+    {
+      available = false;
+      break;
+    }
+  }
+
+  return make_pair(available, refPos);
+}
+
+
+pair<bool, Position> isLeftAvailable(const CodingUnit &cu, const ChannelType &chType, const Position &posLT,
+                    const uint32_t uiNumUnitsInPU, const uint32_t unitHeight)
+{
+  const CodingStructure &cs = *cu.cs;
+
+  bool      available = true;
+  const int maxDy     = uiNumUnitsInPU * unitHeight;
+  Position refPos;
+
+  for (int dy = 0; dy < maxDy; dy += unitHeight)
+  {
+    refPos = posLT.offset(-1, dy);
+
+    if (!cs.isDecomp(refPos, chType))
+    {
+      available = false;
+
+      break;
+    }
+  }
+
+  return make_pair(available, refPos);
+}
+
+
 void EncCu::compressCtu( CodingStructure& cs, const UnitArea& area, const unsigned ctuRsAddr, const int prevQP[], const int currQP[] )
 {
   m_modeCtrl->initCTUEncoding( *cs.slice );
@@ -333,6 +388,63 @@ void EncCu::compressCtu( CodingStructure& cs, const UnitArea& area, const unsign
   tempCS->prevQP[CH_L] = bestCS->prevQP[CH_L] = prevQP[CH_L];
 
   xCompressCU(tempCS, bestCS, partitioner);
+
+  auto pu_vector = bestCS->pus;
+  for (int i = 0; i < pu_vector.size(); i++)
+  {
+    auto pu = pu_vector[i];
+    auto chromaArea = pu->Cb();
+    // assert 420 chroma subsampling
+    CompArea lumaArea = CompArea(COMPONENT_Y, pu->chromaFormat, chromaArea.lumaPos(),
+                                  recalcSize(pu->chromaFormat, CHANNEL_TYPE_CHROMA, CHANNEL_TYPE_LUMA,
+                                            chromaArea.size()));   // needed for correct pos/size (4x4 Tus)
+
+
+    const SizeType uiCWidth  = chromaArea.width;
+    const SizeType uiCHeight = chromaArea.height;
+
+    const CodingUnit &lumaCU = isChroma(pu->chType) ? *pu->cs->picture->cs->getCU(lumaArea.pos(), CH_L) : *pu->cu;
+
+    const CompArea &area = isChroma(pu->chType) ? chromaArea : lumaArea;
+
+    const uint32_t uiTuWidth  = area.width;
+    const uint32_t uiTuHeight = area.height;
+
+    int iBaseUnitSize = (1 << MIN_CU_LOG2);
+
+    const int iUnitWidth  = iBaseUnitSize >> getComponentScaleX(area.compID, area.chromaFormat);
+    const int iUnitHeight = iBaseUnitSize >> getComponentScaleY(area.compID, area.chromaFormat);
+
+    const int iTUWidthInUnits     = uiTuWidth / iUnitWidth;
+    const int iTUHeightInUnits    = uiTuHeight / iUnitHeight;
+    const int iAboveUnits         = iTUWidthInUnits;
+    const int iLeftUnits          = iTUHeightInUnits;
+
+    auto above_pair = isAboveAvailable(lumaCU, toChannelType(area.compID), area.pos(),
+                                       iAboveUnits, iUnitWidth);
+    auto left_pair  = isAboveAvailable(lumaCU, toChannelType(area.compID), area.pos(), iLeftUnits, iUnitHeight);
+
+
+    printf("INFO-PU%8d-INTRA_MODE:%3d-X:%5d-Y:%5d-width:%3d-height:%3d", i, pu->intraDir[0], pu->lx(), pu->ly(),
+           pu->lwidth(), pu->lheight());
+    if (above_pair.first == true)
+    {
+      printf("-above:%d", 1);
+    }
+    else
+    {
+      printf("-above:%d:%3d:%3d", 0, above_pair.second.x, above_pair.second.y);
+    }
+    if (left_pair.first == true)
+    {
+      printf("-left:%d", 1);
+    }
+    else
+    {
+      printf("-left:%d:%3d:%3d", 0, left_pair.second.x, left_pair.second.y);
+    }
+    printf("\n");
+  }
   cs.slice->m_mapPltCost[0].clear();
   cs.slice->m_mapPltCost[1].clear();
   // all signals were already copied during compression if the CTU was split - at this point only the structures are copied to the top level CS
@@ -354,6 +466,8 @@ void EncCu::compressCtu( CodingStructure& cs, const UnitArea& area, const unsign
 
     xCompressCU(tempCS, bestCS, partitioner);
 
+    
+
     const bool copyUnsplitCTUSignals = bestCS->cus.size() == 1;
     cs.useSubStructure(*bestCS, partitioner.chType, CS::getArea(*bestCS, area, partitioner.chType),
                        copyUnsplitCTUSignals, false, false, copyUnsplitCTUSignals, true);
@@ -374,6 +488,7 @@ void EncCu::compressCtu( CodingStructure& cs, const UnitArea& area, const unsign
   CHECK( bestCS->cus[0]->predMode == NUMBER_OF_PREDICTION_MODES, "No possible encoding found" );
   CHECK( bestCS->cost             == MAX_DOUBLE                , "No possible encoding found" );
 }
+
 
 // ====================================================================================================================
 // Protected member functions

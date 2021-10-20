@@ -1809,7 +1809,12 @@ void EncSlice::encodeCtus( Picture* pcPic, const bool bCompressEntireSlice, cons
       }
     }
   }
-
+  auto pu_vector = cs.pus;
+  for (int i = 0; i < pu_vector.size(); i++) {
+    cs.pus[i]->intraDir[0];
+    cs.pus[i];
+  }
+  cs.getTU();
   // this is wpp exclusive section
 
 //  m_uiPicTotalBits += actualBits;
