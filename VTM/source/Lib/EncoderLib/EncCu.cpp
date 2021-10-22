@@ -254,59 +254,88 @@ void EncCu::init( EncLib* pcEncLib, const SPS& sps PARL_PARAM( const int tId ) )
 // ====================================================================================================================
 
 
-inline pair<bool, Position> isAboveAvailable(const CodingUnit &cu, const ChannelType &chType, const Position &posLT,
-                            const uint32_t uiNumUnitsInPU, const uint32_t unitWidth, bool *validFlags);
-inline pair<bool, Position> isLeftAvailable(const CodingUnit &cu, const ChannelType &chType, const Position &posLT,
-                           const uint32_t uiNumUnitsInPU, const uint32_t unitWidth, bool *validFlags);
+inline void printPUInfo(const CodingStructure &bestCS);
 
-pair<bool, Position> isAboveAvailable(const CodingUnit &cu, const ChannelType &chType, const Position &posLT,
-                     const uint32_t uiNumUnitsInPU, const uint32_t unitWidth)
-{
-  const CodingStructure &cs = *cu.cs;
-
-  bool available   = true;
-  const int maxDx      = uiNumUnitsInPU * unitWidth;
-  Position refPos;
-
-  for (int dx = 0; dx < maxDx; dx += unitWidth)
+void printPUInfo(const CodingStructure &bestCS) {
+  auto pu_vector = bestCS.pus;
+  for (int i = 0; i < pu_vector.size(); i++)
   {
-    refPos = posLT.offset(dx, -1);
+    auto pu         = pu_vector[i];
+    auto chromaArea = pu->Cb();
+    // assert 420 chroma subsampling
+    CompArea          lumaArea = CompArea(COMPONENT_Y, pu->chromaFormat, chromaArea.lumaPos(),
+                                 recalcSize(pu->chromaFormat, CHANNEL_TYPE_CHROMA, CHANNEL_TYPE_LUMA,
+                                            chromaArea.size()));   // needed for correct pos/size (4x4 Tus)
+    const CodingUnit &lumaCU   = *pu->cu;
 
-    if (!cs.isDecomp(refPos, chType))
+    const CompArea &area = pu->Y();
+
+    const uint32_t uiTuWidth  = area.width;
+    const uint32_t uiTuHeight = area.height;
+
+    int iBaseUnitSize = (1 << MIN_CU_LOG2);
+
+    const int iUnitWidth  = iBaseUnitSize >> getComponentScaleX(area.compID, area.chromaFormat);
+    const int iUnitHeight = iBaseUnitSize >> getComponentScaleY(area.compID, area.chromaFormat);
+
+    const int iTUWidthInUnits  = uiTuWidth / iUnitWidth;
+    const int iTUHeightInUnits = uiTuHeight / iUnitHeight;
+    const int iAboveUnits      = iTUWidthInUnits;
+    const int iLeftUnits       = iTUHeightInUnits;
+
+    const CodingStructure &cs = *lumaCU.cs;
+
+    bool      left_available = true;
+    const int left_maxDy     = (iLeftUnits+1) * iUnitHeight;
+    Position  left_refPos;
+    const int left_temp = iUnitWidth;
+    for (int dy = 0; dy < left_maxDy; dy += iUnitHeight)
     {
-      available = false;
-      break;
+      left_refPos = area.pos().offset(-left_temp, dy);
+      if (!cs.isDecomp(left_refPos, toChannelType(area.compID)))
+      {
+        left_available = false;
+
+        break;
+      }
     }
-  }
 
-  return make_pair(available, refPos);
-}
-
-
-pair<bool, Position> isLeftAvailable(const CodingUnit &cu, const ChannelType &chType, const Position &posLT,
-                    const uint32_t uiNumUnitsInPU, const uint32_t unitHeight)
-{
-  const CodingStructure &cs = *cu.cs;
-
-  bool      available = true;
-  const int maxDy     = uiNumUnitsInPU * unitHeight;
-  Position refPos;
-
-  for (int dy = 0; dy < maxDy; dy += unitHeight)
-  {
-    refPos = posLT.offset(-1, dy);
-
-    if (!cs.isDecomp(refPos, chType))
+    bool      above_available = true;
+    const int above_maxDy     = (iAboveUnits + 1) * iUnitWidth;
+    Position  above_refPos;
+    const int above_temp = iUnitHeight;
+    for (int dx = 0; dx < above_maxDy; dx += iUnitWidth)
     {
-      available = false;
+      above_refPos = area.pos().offset(dx, -above_temp);
 
-      break;
+      if (!cs.isDecomp(above_refPos, toChannelType(area.compID)))
+      {
+        above_available = false;
+        break;
+      }
     }
+
+    printf("INFO-PU-INTRA_MODE:%3d-X:%5d-Y:%5d-width:%3d-height:%3d", pu->intraDir[0], pu->lx(), pu->ly(), pu->lwidth(),
+           pu->lheight());
+    if (above_available == true)
+    {
+      printf("-above:%d", 1);
+    }
+    else
+    {
+      printf("-above:%d:%3d:%3d", 0, above_refPos.x, above_refPos.y);
+    }
+    if (left_available == true)
+    {
+      printf("-left:%d", 1);
+    }
+    else
+    {
+      printf("-left:%d:%3d:%3d", 0, left_refPos.x, left_refPos.y);
+    }
+    printf("\n");
   }
-
-  return make_pair(available, refPos);
 }
-
 
 void EncCu::compressCtu( CodingStructure& cs, const UnitArea& area, const unsigned ctuRsAddr, const int prevQP[], const int currQP[] )
 {
@@ -388,63 +417,8 @@ void EncCu::compressCtu( CodingStructure& cs, const UnitArea& area, const unsign
   tempCS->prevQP[CH_L] = bestCS->prevQP[CH_L] = prevQP[CH_L];
 
   xCompressCU(tempCS, bestCS, partitioner);
-
-  auto pu_vector = bestCS->pus;
-  for (int i = 0; i < pu_vector.size(); i++)
-  {
-    auto pu = pu_vector[i];
-    auto chromaArea = pu->Cb();
-    // assert 420 chroma subsampling
-    CompArea lumaArea = CompArea(COMPONENT_Y, pu->chromaFormat, chromaArea.lumaPos(),
-                                  recalcSize(pu->chromaFormat, CHANNEL_TYPE_CHROMA, CHANNEL_TYPE_LUMA,
-                                            chromaArea.size()));   // needed for correct pos/size (4x4 Tus)
-
-
-    const SizeType uiCWidth  = chromaArea.width;
-    const SizeType uiCHeight = chromaArea.height;
-
-    const CodingUnit &lumaCU = isChroma(pu->chType) ? *pu->cs->picture->cs->getCU(lumaArea.pos(), CH_L) : *pu->cu;
-
-    const CompArea &area = isChroma(pu->chType) ? chromaArea : lumaArea;
-
-    const uint32_t uiTuWidth  = area.width;
-    const uint32_t uiTuHeight = area.height;
-
-    int iBaseUnitSize = (1 << MIN_CU_LOG2);
-
-    const int iUnitWidth  = iBaseUnitSize >> getComponentScaleX(area.compID, area.chromaFormat);
-    const int iUnitHeight = iBaseUnitSize >> getComponentScaleY(area.compID, area.chromaFormat);
-
-    const int iTUWidthInUnits     = uiTuWidth / iUnitWidth;
-    const int iTUHeightInUnits    = uiTuHeight / iUnitHeight;
-    const int iAboveUnits         = iTUWidthInUnits;
-    const int iLeftUnits          = iTUHeightInUnits;
-
-    auto above_pair = isAboveAvailable(lumaCU, toChannelType(area.compID), area.pos(),
-                                       iAboveUnits, iUnitWidth);
-    auto left_pair  = isAboveAvailable(lumaCU, toChannelType(area.compID), area.pos(), iLeftUnits, iUnitHeight);
-
-
-    printf("INFO-PU%8d-INTRA_MODE:%3d-X:%5d-Y:%5d-width:%3d-height:%3d", i, pu->intraDir[0], pu->lx(), pu->ly(),
-           pu->lwidth(), pu->lheight());
-    if (above_pair.first == true)
-    {
-      printf("-above:%d", 1);
-    }
-    else
-    {
-      printf("-above:%d:%3d:%3d", 0, above_pair.second.x, above_pair.second.y);
-    }
-    if (left_pair.first == true)
-    {
-      printf("-left:%d", 1);
-    }
-    else
-    {
-      printf("-left:%d:%3d:%3d", 0, left_pair.second.x, left_pair.second.y);
-    }
-    printf("\n");
-  }
+  printPUInfo(*bestCS);
+  
   cs.slice->m_mapPltCost[0].clear();
   cs.slice->m_mapPltCost[1].clear();
   // all signals were already copied during compression if the CTU was split - at this point only the structures are copied to the top level CS
