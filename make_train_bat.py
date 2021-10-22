@@ -2,7 +2,7 @@ import os
 import sys
 import argparse
 
-def main(file_path, cfg, path_input, path_bitstream, frame_rate, frame):
+def main(file_path, cfg, path_input, path_bitstream, frame_rate):
     qp_list = ['22', '27', '32', '37']
     lines = []
 
@@ -23,7 +23,7 @@ def main(file_path, cfg, path_input, path_bitstream, frame_rate, frame):
 
 
 if __name__ == "__main__":
-    classes = ['Class_B', 'Class_C', 'Class_D']
+    classes = ['train']
     base_path = "C:\\Users\\user\\Desktop\\VVCSoftware_VTM-VTM-9.0\\VTM"
     for i in classes:
         sequence_list = os.listdir(os.path.join(base_path,"bin", i))
@@ -42,6 +42,5 @@ if __name__ == "__main__":
             frame_rate = j.split("_")[2][:2]
             frame = str(int(frame_rate) * 2)
 
-            main(file_path, cfg, path_input, path_bitstream, frame_rate, frame)
-            print(file_path, cfg, path_input, path_bitstream, frame_rate, frame)
+            main(file_path, cfg, path_input, path_bitstream, frame_rate)
 
