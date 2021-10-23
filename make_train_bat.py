@@ -6,18 +6,28 @@ def main(sequence_list, i, base_path):
     qp_list = ['22', '27', '32', '37']
     lines = []
 
-    cfg = base_path + "\\bin\\train.cfg"
-    file_path = base_path + "\\bin\\" + i + ".bat"
+    cfg = "train.cfg"
+    file_path = base_path + i + ".bat"
 
     for sequence in sequence_list:
         path_input = i + "\\" + sequence
-        path_bitstream = "output\\decoder\\" + i + "\\" + sequence.split(".")[0] + ".bin"
 
         for qp in qp_list:
-            path_recon_file = path_input.split(".")[0]+"_qp"+qp+".yuv"
-            path_log = path_input.split(".")[0]+"_qp"+qp+".log"
-            enc_line = "EncoderApp.exe -c encoder_intra_vtm.cfg -c "+cfg+" -i "+path_input+" -b "+path_bitstream+" -q "+qp+" --ReconFile=output\\recon\\"+path_recon_file+" -fs 0 > output\\encoder\\"+path_log+"\n"
-            dec_line = "DecoderApp.exe -b "+path_bitstream+" -o output\\decoder\\"+path_recon_file + " > output\\decoder\\"+path_log+"\n"
+            decoder_path = "output\\decoder\\" + i + "\\" + qp + "\\"
+            encoder_path = "output\\encoder\\"+i+"\\"+qp+"\\"
+            recon_path = "output\\recon\\"+i+"\\"+qp+"\\"
+            if not os.path.exists(os.path.join(base_path,decoder_path)):
+                os.makedirs(os.path.join(base_path,decoder_path))
+            if not os.path.exists(os.path.join(base_path,encoder_path)):
+                os.makedirs(os.path.join(base_path,encoder_path))
+            if not os.path.exists(os.path.join(base_path,recon_path)):
+                os.makedirs(os.path.join(base_path,recon_path))
+            path_bitstream = decoder_path + sequence.split(".")[0] + ".bin"
+
+            path_recon_file = recon_path + sequence+"_qp"+qp+".yuv"
+            path_log = encoder_path+sequence+"_qp"+qp+".log"
+            enc_line = "EncoderApp.exe -c encoder_intra_vtm.cfg -c "+cfg+" -i "+path_input+" -b "+path_bitstream+" -q "+qp+" --ReconFile="+path_recon_file+" -fs 0 > "+path_log+"\n"
+            dec_line = "DecoderApp.exe -b "+path_bitstream+" -o "+path_recon_file + " > output\\decoder\\"+qp+"\\"+path_log+"\n"
             lines.append(enc_line)
             lines.append("\n")
             #lines.append(dec_line)
@@ -29,15 +39,9 @@ def main(sequence_list, i, base_path):
 
 if __name__ == "__main__":
     classes = ['train']
-    base_path = "C:\\Users\\user\\Desktop\\VVCSoftware_VTM-VTM-9.0\\VTM"
+    base_path = "C:\\Users\\suamsung\\Documents\\Cap2\\NNVC-IP\\VTM\\bin"
     for i in classes:
-        sequence_list = os.listdir(os.path.join(base_path,"bin", i))
-        if not os.path.exists(base_path+"\\bin\\output\\encoder\\"+i):
-            os.makedirs(base_path+"\\bin\\output\\encoder\\"+i)
-        if not os.path.exists(base_path+"\\bin\\output\\decoder\\"+i):
-            os.makedirs(base_path+"\\bin\\output\\decoder\\"+i)
-        if not os.path.exists(base_path+"\\bin\\output\\recon\\"+i):
-            os.makedirs(base_path+"\\bin\\output\\recon\\"+i)
+        sequence_list = os.listdir(os.path.join(base_path, i))
         main(sequence_list, i, base_path)
 
 
