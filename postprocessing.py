@@ -59,10 +59,11 @@ def preprocessing(input_path, output_path, seq, array):
         above = info[-1].split(":")
         info = info[0].split("-")
         if info[0]=="INFO":
-            save_np_array(output_path, seq+"_"+str(block_idx)+".npy", info, above, left, array)
+            calculate_np_array(output_path, seq+"_"+str(block_idx)+".npy", info, above, left, array)
+            # calculate_np_array(output_path, seq+".npy", info, above, left, array)
             block_idx += 1
 
-def save_np_array(base_path, seq, info, above, left, array):
+def calculate_np_array(base_path, seq, info, above, left, array):
     mode = info[2].split(":")[-1]
     wdt = int(info[5].split(":")[-1])
     hgt = int(info[6].split(":")[-1])
@@ -117,15 +118,29 @@ def save_np_array(base_path, seq, info, above, left, array):
     left_block = left_block - block_mean
 
     output_path = os.path.join(base_path, str(hgt)+"x"+str(wdt))
+    iter_save_np_array(y_block, above_block, left_block, output_path, seq)
 
+
+def iter_save_np_array(y, above, left, output_path, seq):
     make_folder(output_path)
+    save_y_path = os.path.join(output_path, "y", seq)
     save_above_path = os.path.join(output_path, "above", seq)
     save_left_path = os.path.join(output_path, "left", seq)
-    save_y_path = os.path.join(output_path, "y", seq)
-    np.save(save_y_path, y_block)
-    np.save(save_above_path, above_block)
-    np.save(save_left_path, left_block)
+    np.save(save_y_path, y)
+    np.save(save_above_path, above)
+    np.save(save_left_path, left)
 
+def seq_save_np_array(y, above, left, output_path, seq):
+    make_folder(output_path)
+    save_y_path = os.path.join(output_path, "y", seq)
+    save_above_path = os.path.join(output_path, "above", seq)
+    save_left_path = os.path.join(output_path, "left", seq)
+    Y = np.load(save_y_path) if os.path.isfile(save_y_path) else []  # get data if exist
+    np.save(save_y_path, np.append(Y, y))  # save the new
+    Above = np.load(save_above_path) if os.path.isfile(save_above_path) else []  # get data if exist
+    np.save(save_above_path, np.append(Above, above))  # save the new
+    Left = np.load(save_left_path) if os.path.isfile(save_left_path) else []  # get data if exist
+    np.save(save_left_path, np.append(Left, left))  # save the new
 
 def make_folder(base_path):
     save_above_path = os.path.join(base_path, "above")
