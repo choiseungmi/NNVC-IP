@@ -253,6 +253,90 @@ void EncCu::init( EncLib* pcEncLib, const SPS& sps PARL_PARAM( const int tId ) )
 // Public member functions
 // ====================================================================================================================
 
+
+inline void printPUInfo(const CodingStructure &bestCS);
+
+void printPUInfo(const CodingStructure &bestCS) {
+  auto pu_vector = bestCS.pus;
+  for (int i = 0; i < pu_vector.size(); i++)
+  {
+    auto pu         = pu_vector[i];
+    auto chromaArea = pu->Cb();
+    // assert 420 chroma subsampling
+    CompArea          lumaArea = CompArea(COMPONENT_Y, pu->chromaFormat, chromaArea.lumaPos(),
+                                 recalcSize(pu->chromaFormat, CHANNEL_TYPE_CHROMA, CHANNEL_TYPE_LUMA,
+                                            chromaArea.size()));   // needed for correct pos/size (4x4 Tus)
+    const CodingUnit &lumaCU   = *pu->cu;
+
+    const CompArea &area = pu->Y();
+
+    const uint32_t uiTuWidth  = area.width;
+    const uint32_t uiTuHeight = area.height;
+
+    int iBaseUnitSize = (1 << MIN_CU_LOG2);
+
+    const int iUnitWidth  = iBaseUnitSize >> getComponentScaleX(area.compID, area.chromaFormat);
+    const int iUnitHeight = iBaseUnitSize >> getComponentScaleY(area.compID, area.chromaFormat);
+
+    const int iTUWidthInUnits  = uiTuWidth / iUnitWidth;
+    const int iTUHeightInUnits = uiTuHeight / iUnitHeight;
+    const int iAboveUnits      = iTUWidthInUnits;
+    const int iLeftUnits       = iTUHeightInUnits;
+
+    const CodingStructure &cs = *lumaCU.cs;
+
+    bool      left_available = true;
+    const int left_maxDy     = (iLeftUnits+1) * iUnitHeight;
+    Position  left_refPos;
+    const int left_temp = iUnitWidth;
+    for (int dy = 0; dy < left_maxDy; dy += iUnitHeight)
+    {
+      left_refPos = area.pos().offset(-left_temp, dy);
+      if (!cs.isDecomp(left_refPos, toChannelType(area.compID)))
+      {
+        left_available = false;
+
+        break;
+      }
+    }
+
+    bool      above_available = true;
+    const int above_maxDy     = (iAboveUnits + 1) * iUnitWidth;
+    Position  above_refPos;
+    const int above_temp = iUnitHeight;
+    for (int dx = -iUnitWidth; dx < above_maxDy; dx += iUnitWidth)
+    {
+      above_refPos = area.pos().offset(dx, -above_temp);
+
+      if (!cs.isDecomp(above_refPos, toChannelType(area.compID)))
+      {
+        above_available = false;
+        break;
+      }
+    }
+
+    printf("INFO-PU-INTRA_MODE:%3d-X:%5d-Y:%5d-width:%3d-height:%3d", pu->intraDir[0], pu->lx(), pu->ly(), pu->lwidth(),
+           pu->lheight());
+    if (above_available == true)
+    {
+      printf("-above:%d", 1);
+    }
+    else
+    {
+      printf("-above:%d:%3d:%3d", 0, above_refPos.x, above_refPos.y);
+    }
+    if (left_available == true)
+    {
+      printf("-left:%d", 1);
+    }
+    else
+    {
+      printf("-left:%d:%3d:%3d", 0, left_refPos.x, left_refPos.y);
+    }
+    printf("\n");
+  }
+}
+
 void EncCu::compressCtu( CodingStructure& cs, const UnitArea& area, const unsigned ctuRsAddr, const int prevQP[], const int currQP[] )
 {
   m_modeCtrl->initCTUEncoding( *cs.slice );
@@ -333,6 +417,8 @@ void EncCu::compressCtu( CodingStructure& cs, const UnitArea& area, const unsign
   tempCS->prevQP[CH_L] = bestCS->prevQP[CH_L] = prevQP[CH_L];
 
   xCompressCU(tempCS, bestCS, partitioner);
+  printPUInfo(*bestCS);
+  
   cs.slice->m_mapPltCost[0].clear();
   cs.slice->m_mapPltCost[1].clear();
   // all signals were already copied during compression if the CTU was split - at this point only the structures are copied to the top level CS
@@ -354,6 +440,8 @@ void EncCu::compressCtu( CodingStructure& cs, const UnitArea& area, const unsign
 
     xCompressCU(tempCS, bestCS, partitioner);
 
+    
+
     const bool copyUnsplitCTUSignals = bestCS->cus.size() == 1;
     cs.useSubStructure(*bestCS, partitioner.chType, CS::getArea(*bestCS, area, partitioner.chType),
                        copyUnsplitCTUSignals, false, false, copyUnsplitCTUSignals, true);
@@ -374,6 +462,7 @@ void EncCu::compressCtu( CodingStructure& cs, const UnitArea& area, const unsign
   CHECK( bestCS->cus[0]->predMode == NUMBER_OF_PREDICTION_MODES, "No possible encoding found" );
   CHECK( bestCS->cost             == MAX_DOUBLE                , "No possible encoding found" );
 }
+
 
 // ====================================================================================================================
 // Protected member functions

@@ -1809,7 +1809,14 @@ void EncSlice::encodeCtus( Picture* pcPic, const bool bCompressEntireSlice, cons
       }
     }
   }
+  /*auto pu_vector = cs.pus;
+  for (int i = 0; i < pu_vector.size(); i++)
+  {
+    auto pu = cs.pus[i];
+    printf("INFO-PU%8d-INTRA_MODE:%3d-X:%5d-Y:%5d-width:%3d-height:%3d \n", i, pu->intraDir[0], pu->lx(), pu->ly(), pu->lwidth(), pu->lheight());
 
+    cs.pus[i]->intraDir[0];
+  }*/
   // this is wpp exclusive section
 
 //  m_uiPicTotalBits += actualBits;
