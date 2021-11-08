@@ -8,6 +8,10 @@ import config
 import os
 import math
 
+use_cuda = torch.cuda.is_available()
+dtype = 'float32' if use_cuda else 'float64'
+torchtype = {'float32': torch.float32, 'float64': torch.float64}
+
 qp_list = ['22', '27', '32', '37']
 block_len = [4, 8, 16, 32, 64]
 block_size = {
@@ -149,7 +153,7 @@ class TextureAdaptiveCluster(nn.Module):
 
 if __name__ == '__main__':
     train_path = config.train_numpy_path
-
+    print(use_cuda)
     h = block_len[3]
     w = block_len[3]
     above_numpy_path = os.path.join(train_path, qp_list[1], str(h)+"x"+str(w), "above")
@@ -176,4 +180,5 @@ if __name__ == '__main__':
     print(vector.shape[1])
 
     model = TextureAdaptivePNN(False, h, w)
-    model(above, left)
+    model.cuda()
+    model(above.cuda(), left.cuda())
