@@ -304,7 +304,7 @@ void printPUInfo(const CodingStructure &bestCS) {
     const int above_maxDy     = (iAboveUnits + 1) * iUnitWidth;
     Position  above_refPos;
     const int above_temp = iUnitHeight;
-    for (int dx = 0; dx < above_maxDy; dx += iUnitWidth)
+    for (int dx = -iUnitWidth; dx < above_maxDy; dx += iUnitWidth)
     {
       above_refPos = area.pos().offset(dx, -above_temp);
 

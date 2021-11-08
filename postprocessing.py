@@ -154,7 +154,7 @@ def make_folder(base_path):
         os.makedirs(save_left_path)
 
 def main(i, base_path):
-    qp_list = ['22', '27', '32', '37']
+    qp_list = ['27', '32', '37']
 
     for qp in qp_list:
         encoder_path = "output\\encoder\\"+i+"\\"+qp
@@ -168,7 +168,10 @@ def main(i, base_path):
             path_recon_file = os.path.join(base_path, recon_path, sequence+".yuv")
             path_log = os.path.join(base_path, encoder_path, sequence+".log")
             output_path = os.path.join(base_path[:-8], "Train_data", qp)
-            img_path = os.path.join(base_path, "train", sequence[:-5]+".png")
+            if sequence[:-5][-3:]=="png":
+                img_path = os.path.join(base_path, "train", sequence[:-5])
+            else: img_path = os.path.join(base_path, "train", sequence[:-5]+".png")
+
             img = cv2.imread(img_path)
             h, w, c = img.shape
             y = readyuv420(path_recon_file, 10,
