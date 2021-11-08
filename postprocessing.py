@@ -8,6 +8,9 @@ import math
 from functools import partial
 from tqdm import tqdm
 
+import config
+
+
 def readyuv420(filename, bitdepth, W, H, startframe, totalframe):
     #   startframe（ ）   （0-based），  totalframe
     Y = np.zeros((totalframe, H, W), np.uint8)
@@ -167,7 +170,7 @@ def main(i, base_path):
 
             path_recon_file = os.path.join(base_path, recon_path, sequence+".yuv")
             path_log = os.path.join(base_path, encoder_path, sequence+".log")
-            output_path = os.path.join(base_path[:-8], "Train_data", qp)
+            output_path = os.path.join(config.train_numpy_path, qp)
             if sequence[:-5][-3:]=="png":
                 img_path = os.path.join(base_path, "train", sequence[:-5])
             else: img_path = os.path.join(base_path, "train", sequence[:-5]+".png")
@@ -183,7 +186,7 @@ def main(i, base_path):
 
 if __name__ == "__main__":
     classes = ['train']
-    base_path = "C:\\Users\\user\\Desktop\\VVCSoftware_VTM-VTM-9.0\\VTM\\bin"
+    base_path = config.bin_path
     for i in classes:
         main(i, base_path)
 

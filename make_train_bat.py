@@ -3,6 +3,8 @@ import sys
 import argparse
 import cv2
 
+import config
+
 
 def convert_rgb2yuv420(input_path, sequence):
     savepath = "\\".join(input_path.split("\\")[:-1]) + "_yuv\\"+sequence.split(".")[0]+".yuv"
@@ -53,7 +55,7 @@ def main(sequence_list, i, base_path):
 
 if __name__ == "__main__":
     classes = ['train']
-    base_path = "C:\\Users\\user\\Desktop\\VVCSoftware_VTM-VTM-9.0\\VTM\\bin"
+    base_path = config.bin_path
     for i in classes:
         sequence_list = os.listdir(os.path.join(base_path, i))
         main(sequence_list, i, base_path)

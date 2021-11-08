@@ -2,6 +2,9 @@ import os
 import sys
 import argparse
 
+import config
+
+
 def main(file_path, cfg, path_input, path_bitstream, frame_rate, frame):
     qp_list = ['22', '27', '32', '37']
     lines = []
@@ -24,20 +27,20 @@ def main(file_path, cfg, path_input, path_bitstream, frame_rate, frame):
 
 if __name__ == "__main__":
     classes = ['Class_B', 'Class_C', 'Class_D']
-    base_path = "C:\\Users\\user\\Desktop\\VVCSoftware_VTM-VTM-9.0\\VTM"
+    base_path = config.bin_path
     for i in classes:
-        sequence_list = os.listdir(os.path.join(base_path,"bin", i))
-        if not os.path.exists(base_path+"\\bin\\output\\encoder\\"+i):
-            os.makedirs(base_path+"\\bin\\output\\encoder\\"+i)
+        sequence_list = os.listdir(os.path.join(base_path, i))
+        if not os.path.exists(base_path+"\\output\\encoder\\"+i):
+            os.makedirs(base_path+"\\output\\encoder\\"+i)
         if not os.path.exists(base_path+"\\bin\\output\\decoder\\"+i):
-            os.makedirs(base_path+"\\bin\\output\\decoder\\"+i)
+            os.makedirs(base_path+"\\output\\decoder\\"+i)
         if not os.path.exists(base_path+"\\bin\\output\\recon\\"+i):
-            os.makedirs(base_path+"\\bin\\output\\recon\\"+i)
+            os.makedirs(base_path+"\\output\\recon\\"+i)
         for j in sequence_list:
             path_input = i+"\\"+j
             sequence = j.split("_")[0]
-            file_path = base_path +"\\bin\\"+ i +"_"+ sequence + ".bat"
-            cfg = base_path + "\\cfg\\per-sequence\\" + sequence+".cfg"
+            file_path = base_path +"\\"+ i +"_"+ sequence + ".bat"
+            cfg = config.vtm_path + "\\cfg\\per-sequence\\" + sequence+".cfg"
             path_bitstream = i+"\\"+j.split(".")[0]+".bin"
             frame_rate = j.split("_")[2][:2]
             frame = str(int(frame_rate) * 2)
