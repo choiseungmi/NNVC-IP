@@ -102,7 +102,7 @@ class TextureAdaptivePNN(nn.Module):
             self.above_layer = CNNBaseBlock(self.above_out_size, (1, 2))
             self.left_layer = CNNBaseBlock(self.left_out_size, (2, 1))
             self.linear1 = fully_module(self.above_out_size+self.left_out_size, h*w)
-            self.linear2 = fully_module(h*w, h*w)
+            self.linear2 = nn.Linear(h*w, h*w)
 
     def forward(self, above, left):
         if self.is_fully_connected:
@@ -165,14 +165,19 @@ if __name__ == '__main__':
     for i, a_path in enumerate(above_sequence_list):
         if i==5:break
         a = np.load(os.path.join(above_numpy_path, a_path))
+        a= np.int8(a)
         above_np = np.append(above_np, np.reshape(a, ((1,)+(1,)+a.shape)), axis=0)
+        print(above_np.dtype)
     for i, l_path in enumerate(left_sequence_list):
         if i==5:break
         l = np.load(os.path.join(left_numpy_path, l_path))
+        l=np.int8(l)
         left_np = np.append(left_np, np.reshape(l, ((1,)+(1,)+l.shape)), axis=0)
 
-    above = torch.from_numpy(above_np).float()
-    left = torch.from_numpy(left_np).float()
+
+    above = torch.Tensor(above_np)
+    left = torch.Tensor(left_np)
+
     print(above.shape)
     print(left.shape)
     batch = above.shape[0]
