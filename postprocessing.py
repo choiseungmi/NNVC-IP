@@ -13,24 +13,29 @@ import config
 
 def readyuv420(filename, bitdepth, W, H, startframe, totalframe):
     #   startframe（ ）   （0-based），  totalframe
-    Y = np.zeros((totalframe, H, W), np.uint8)
+    Y = np.zeros((totalframe//config.frames_interval+1, H, W), np.uint8)
 
     bytes2num = partial(int.from_bytes, byteorder='little', signed=False)
 
     bytesPerPixel = math.ceil(bitdepth / 8)
     fp = open(filename, 'rb')
 
-    for i in range(totalframe):
-        seekPixels = startframe * H * W * 3 // 2
-        fp.seek(bytesPerPixel * seekPixels)
+    j = 0
+    seekPixels = startframe * H * W * 3 // 2
+    fp.seek(bytesPerPixel * seekPixels)
+    for i in range(totalframe+1):
         for m in range(H):
             for n in range(W):
                 if bitdepth == 8:
                     pel = bytes2num(fp.read(1))
-                    Y[i, m, n] = np.uint8(pel)
+                    if i%config.frames_interval==0:
+                        Y[j, m, n] = np.uint8(pel)
                 elif bitdepth == 10:
                     pel = bytes2num(fp.read(2))
-                    Y[i, m, n] = np.uint8(pel/4)
+                    if i%config.frames_interval==0:
+                        Y[j, m, n] = np.uint8(pel/4)
+        if i % config.frames_interval == 0:
+            j+=1
 
     if totalframe == 1:
         return Y[0]
@@ -48,28 +53,32 @@ def show_img(b, img, img2):
     plt.pause(1)
     # plt.pause(0.001)
 
-def preprocessing(input_path, output_path, seq, array):
+def preprocessing(input_path, output_path, seq, array, poc):
     poc_idx = 0
     block_idx = 0
     f = open(input_path)
     lines = f.readlines()
     f.close()
     for line in lines:
-        if len(line.split())!=0 and line.split()[0]=="POC":poc_idx+=1
-        info = line.strip().replace(" ", "").split("-left:")
-        left = info[-1].split(":")
-        info = info[0].split("-above:")
-        above = info[-1].split(":")
-        info = info[0].split("-")
-        if info[0]=="INFO":
-            calculate_np_array(output_path, seq+"_"+str(block_idx)+".npy", info, above, left, array)
-            # calculate_np_array(output_path, seq+".npy", info, above, left, array)
-            block_idx += 1
+        if len(line.split())!=0 and line.split()[0]=="POC":
+            poc_idx+=1
+            block_idx = 0
+        if poc_idx == poc:
+            info = line.strip().replace(" ", "").split("-left:")
+            left = info[-1].split(":")
+            info = info[0].split("-above:")
+            above = info[-1].split(":")
+            info = info[0].split("-")
+            if info[0]=="INFO":
+                calculate_np_array(output_path, seq+"_"+str(block_idx)+".npy", info, above, left, array)
+                # calculate_np_array(output_path, seq+".npy", info, above, left, array)
+                block_idx += 1
 
 def calculate_np_array(base_path, seq, info, above, left, array):
     mode = info[2].split(":")[-1]
     wdt = int(info[5].split(":")[-1])
     hgt = int(info[6].split(":")[-1])
+    if wdt!=32 or hgt!=32: return
 
     if min(wdt, hgt) <= 8:
         xa = min(wdt, hgt)
@@ -157,35 +166,51 @@ def make_folder(base_path):
         os.makedirs(save_left_path)
 
 def main(i, base_path):
-    qp_list = ['27', '32', '37']
+    qp_list = ['22', '27', '32', '37']
 
     for qp in qp_list:
         encoder_path = "output\\encoder\\"+i+"\\"+qp
         recon_path = "output\\recon\\"+i+"\\"+qp
 
         sequence_list = os.listdir(os.path.join(base_path, recon_path))
-        for sequence in tqdm(sorted(sequence_list)):
+        for idx, sequence in enumerate(tqdm(sorted(sequence_list))):
             # convert_rgb2yuv420(base_path + "\\" + path_input, sequence)
             sequence = sequence[:-4]
 
             path_recon_file = os.path.join(base_path, recon_path, sequence+".yuv")
             path_log = os.path.join(base_path, encoder_path, sequence+".log")
-            output_path = os.path.join(config.train_numpy_path, qp)
-            if sequence[:-5][-3:]=="png":
-                img_path = os.path.join(base_path, "train", sequence[:-5])
-            else: img_path = os.path.join(base_path, "train", sequence[:-5]+".png")
+            output_path = os.path.join(config.valid_numpy_path, qp)
+            # output_path = os.path.join(config.train_numpy_path, qp)
 
-            img = cv2.imread(img_path)
-            h, w, c = img.shape
-            y = readyuv420(path_recon_file, 10,
-                                 w,
-                                 h, 0, 1)
+            ######################## CLIC 2020 #########################
+            # if sequence[:-5][-3:]=="png":
+            #     img_path = os.path.join(base_path, "input", i, sequence[:-5])
+            # else: img_path = os.path.join(base_path,"input",  i, sequence[:-5]+".png")
+            # img = cv2.imread(img_path)
+            # h, w, c = img.shape
+            # Y = readyuv420(path_recon_file, 10,
+            #                      w,
+            #                      h, 0, 1)
             # show_img(False, y, None)
-            preprocessing(path_log, output_path, sequence[:-5], y)
+            # preprocessing(path_log, output_path, sequence[:-5], Y, 0)
+
+            ##################### test sequence ########################
+            total_frame = int(sequence.split("_")[-2])*2
+            print(total_frame)
+            size = sequence.split("_")[-3]
+            print(sequence)
+            h = int(size[:3])
+            w = int(size[-3:])
+            Y = readyuv420(path_recon_file, 10,
+                           w,
+                           h, 0, total_frame)
+            for j in tqdm(range(len(Y))):
+                preprocessing(path_log, output_path, sequence + "_"+str(j), Y[j], j*config.frames_interval)
 
 
 if __name__ == "__main__":
-    classes = ['train']
+    classes = ['Class_C', 'Class_D']
+    # classes = ['train']
     base_path = config.bin_path
     for i in classes:
         main(i, base_path)

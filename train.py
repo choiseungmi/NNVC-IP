@@ -172,7 +172,7 @@ def main(argv):
         [transforms.ToTensor()]
     )
     train_dataset = TAPNN(os.path.join(args.dataset,  str(args.quality), str(args.height)+"x"+str(args.width)), args.height, args.width, transform=train_transforms, is_test=False)
-    test_dataset = TAPNN(os.path.join(args.dataset, str(args.quality), str(args.height)+"x"+str(args.width)), args.height, args.width, transform=test_transforms, is_test = True)
+    test_dataset = TAPNN(os.path.join(config.valid_numpy_path, str(args.quality), str(args.height)+"x"+str(args.width)), args.height, args.width, transform=test_transforms, is_test = True)
     device = "cuda" if torch.cuda.is_available() else "cpu"
     print(torch.cuda.is_available())
     print(device)

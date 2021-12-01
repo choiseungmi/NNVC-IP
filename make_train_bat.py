@@ -6,12 +6,13 @@ import cv2
 import config
 
 
-def convert_rgb2yuv420(input_path, sequence):
+def convert_rgb2yuv420(input_path, sequence, size):
     savepath = "\\".join(input_path.split("\\")[:-1]) + "_yuv\\"+sequence.split(".")[0]+".yuv"
     print(savepath)
 
-    convert = "ffmpeg -y -i "+input_path+" -pix_fmt yuv420p "+savepath
-    os.system(convert)
+    convert = "ffmpeg -y -i "+input_path+" -s "+size+" -pix_fmt yuv420p "+savepath
+    out = os.system(convert)
+    print(out)
 
 def main(sequence_list, i, base_path):
     qp_list = ['22', '27', '32', '37']
@@ -21,12 +22,15 @@ def main(sequence_list, i, base_path):
     file_path = base_path + "\\" + i + ".bat"
 
     for sequence in sequence_list:
-        path_input = i + "\\" + sequence
+        path_input = "input\\" + i + "\\" + sequence
         img = cv2.imread(base_path + "\\" + path_input)
         h, w, c = img.shape
-        #convert_rgb2yuv420(base_path + "\\" + path_input, sequence)
+        h+=(h%2)
+        w+=(w%2)
+        # convert_rgb2yuv420(base_path + "\\" + path_input, sequence, str(w)+"x"+str(h))
+
         sequence = sequence.split(".")[0]
-        path_input = i + "_yuv\\"+sequence+".yuv"
+        path_input_yuv = "input\\" + i + "_yuv\\"+sequence+".yuv"
 
         for qp in qp_list:
             decoder_path = "output\\decoder\\" + i + "\\" + qp + "\\"
@@ -42,7 +46,7 @@ def main(sequence_list, i, base_path):
 
             path_recon_file = recon_path + sequence+"_qp"+qp+".yuv"
             path_log = encoder_path+sequence+"_qp"+qp+".log"
-            enc_line = "EncoderApp.exe -c encoder_intra_vtm.cfg -c "+cfg+" -i "+path_input+" -b "+path_bitstream+" -wdt "+str(w) + " -hgt "+str(h)+" -q "+qp+" --ReconFile="+path_recon_file+" -fs 0 > "+path_log+"\n"
+            enc_line = "EncoderApp.exe -c encoder_intra_vtm.cfg -c "+cfg+" -i "+path_input_yuv+" -b "+path_bitstream+" -wdt "+str(w) + " -hgt "+str(h)+" -q "+qp+" --ReconFile="+path_recon_file+" -fs 0 > "+path_log+"\n"
             dec_line = "DecoderApp.exe -b "+path_bitstream+" -o "+path_recon_file + " > output\\decoder\\"+qp+"\\"+path_log+"\n"
             lines.append(enc_line)
             lines.append("\n")
@@ -54,10 +58,10 @@ def main(sequence_list, i, base_path):
 
 
 if __name__ == "__main__":
-    classes = ['train']
+    classes = ['train', 'valid', 'professional']
     base_path = config.bin_path
     for i in classes:
-        sequence_list = os.listdir(os.path.join(base_path, i))
+        sequence_list = os.listdir(os.path.join(base_path, "input\\" + i))
         main(sequence_list, i, base_path)
 
 
