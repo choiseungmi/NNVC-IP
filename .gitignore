@@ -5,3 +5,5 @@ valid_data/
 log_csv/
 runs/
 temp/
+*.pyc
+*.bat
