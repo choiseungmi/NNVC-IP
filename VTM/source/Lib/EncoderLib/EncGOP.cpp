@@ -1899,8 +1899,8 @@ void EncGOP::xPicInitLMCS(Picture *pic, PicHeader *picHeader, Slice *slice)
 // ====================================================================================================================
 // Public member functions
 // ====================================================================================================================
-void EncGOP::compressGOP( int iPOCLast, int iNumPicRcvd, PicList& rcListPic,
-                          std::list<PelUnitBuf*>& rcListPicYuvRecOut,
+void EncGOP::compressGOP( int iPOCLast, int iNumPicRcvd, PicList& rcListPic, std::list<PelUnitBuf *> &rcListPicYuvRecOut,
+                         std::list<PelUnitBuf *> &predListPicYuvRecOut,
                           bool isField, bool isTff, const InputColourSpaceConversion snr_conversion, const bool printFrameMSE
                         , bool isEncodeLtRef
                         , const int picIdInGOP
@@ -1999,6 +1999,7 @@ void EncGOP::compressGOP( int iPOCLast, int iNumPicRcvd, PicList& rcListPic,
     accessUnit.temporalId = m_pcCfg->getGOPEntry( iGOPid ).m_temporalId;
     xGetBuffer( rcListPic, rcListPicYuvRecOut,
                 iNumPicRcvd, iTimeOffset, pcPic, pocCurr, isField );
+    xGetBuffer(rcListPic, predListPicYuvRecOut, iNumPicRcvd, iTimeOffset, pcPic, pocCurr, isField);
     picHeader = pcPic->cs->picHeader;
     picHeader->setSPSId( pcPic->cs->pps->getSPSId() );
     picHeader->setPPSId( pcPic->cs->pps->getPPSId() );

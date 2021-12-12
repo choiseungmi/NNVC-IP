@@ -5,6 +5,8 @@ import cv2
 
 import config
 
+output_folders = ['output', 'output_anchor']
+output_number = 1
 
 def convert_rgb2yuv420(input_path, sequence, size):
     savepath = "\\".join(input_path.split("\\")[:-1]) + "_yuv\\"+sequence.split(".")[0]+".yuv"
@@ -14,7 +16,7 @@ def convert_rgb2yuv420(input_path, sequence, size):
     out = os.system(convert)
     print(out)
 
-def main(sequence_list, i, base_path):
+def main(sequence_list, i, base_path, output_folder):
     qp_list = ['22', '27', '32', '37']
     lines = []
 
@@ -33,9 +35,9 @@ def main(sequence_list, i, base_path):
         path_input_yuv = "input\\" + i + "_yuv\\"+sequence+".yuv"
 
         for qp in qp_list:
-            decoder_path = "output\\decoder\\" + i + "\\" + qp + "\\"
-            encoder_path = "output\\encoder\\"+i+"\\"+qp+"\\"
-            recon_path = "output\\recon\\"+i+"\\"+qp+"\\"
+            decoder_path = output_folder+"\\decoder\\" + i + "\\" + qp + "\\"
+            encoder_path = output_folder+"\\encoder\\"+i+"\\"+qp+"\\"
+            recon_path = output_folder+"\\recon\\"+i+"\\"+qp+"\\"
             if not os.path.exists(os.path.join(base_path,decoder_path)):
                 os.makedirs(os.path.join(base_path,decoder_path))
             if not os.path.exists(os.path.join(base_path,encoder_path)):
@@ -45,9 +47,15 @@ def main(sequence_list, i, base_path):
             path_bitstream = decoder_path + sequence + ".bin"
 
             path_recon_file = recon_path + sequence+"_qp"+qp+".yuv"
+            path_predictor_file = recon_path + sequence+"_predictor_qp"+qp+".yuv"
             path_log = encoder_path+sequence+"_qp"+qp+".log"
-            enc_line = "EncoderApp.exe -c encoder_intra_vtm.cfg -c "+cfg+" -i "+path_input_yuv+" -b "+path_bitstream+" -wdt "+str(w) + " -hgt "+str(h)+" -q "+qp+" --ReconFile="+path_recon_file+" -fs 0 > "+path_log+"\n"
-            dec_line = "DecoderApp.exe -b "+path_bitstream+" -o "+path_recon_file + " > output\\decoder\\"+qp+"\\"+path_log+"\n"
+            if output_number == 1:
+                enc_line = "EncoderApp.exe -c encoder_intra_vtm.cfg -c " + cfg + " -i " + path_input_yuv + " -b " + path_bitstream + " -wdt " + str(
+                    w) + " -hgt " + str(
+                    h) + " -q " + qp + " --ReconFile=" + path_recon_file + " --PredictorFile=" + path_predictor_file +" -fs 0 > " + path_log + "\n"
+            else:
+                enc_line = "EncoderApp.exe -c encoder_intra_vtm.cfg -c "+cfg+" -i "+path_input_yuv+" -b "+path_bitstream+" -wdt "+str(w) + " -hgt "+str(h)+" -q "+qp+" --ReconFile="+path_recon_file+" -fs 0 > "+path_log+"\n"
+            dec_line = "DecoderApp.exe -b "+path_bitstream+" -o "+path_recon_file + " > "+output_folder+"\\decoder\\"+qp+"\\"+path_log+"\n"
             lines.append(enc_line)
             lines.append("\n")
             #lines.append(dec_line)
@@ -62,7 +70,7 @@ if __name__ == "__main__":
     base_path = config.bin_path
     for i in classes:
         sequence_list = os.listdir(os.path.join(base_path, "input\\" + i))
-        main(sequence_list, i, base_path)
+        main(sequence_list, i, base_path, output_folders[1])
 
 
 

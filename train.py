@@ -8,15 +8,13 @@ import torch.nn as nn
 import torch.optim as optim
 from torch.utils.data import DataLoader
 from torchvision import transforms
-import csv
-import cv2
-import numpy as np
 import os
 from torch.utils.tensorboard import SummaryWriter
 
 import config
-from model.cnn import TextureAdaptivePNN, block_size
+from models.tapnn import TextureAdaptivePNN, block_size
 from dataset.load_dataset import TAPNN
+from util import AverageMeter, CSVLogger
 
 
 def parse_args(argv):
@@ -66,22 +64,6 @@ def parse_args(argv):
     args = parser.parse_args(argv)
     return args
 
-
-class AverageMeter:
-    """Compute running average."""
-
-    def __init__(self):
-        self.val = 0
-        self.avg = 0
-        self.sum = 0
-        self.count = 0
-
-    def update(self, val, n=1):
-        self.val = val
-        self.sum += val * n
-        self.count += n
-        self.avg = self.sum / self.count
-
 def train_one_epoch(
         model, criterion, train_dataloader, optimizer, epoch
 ):
@@ -110,6 +92,11 @@ def train_one_epoch(
                 f" ({100. * i / len(train_dataloader):.0f}%)]"
                 f'\tLoss: {out_criterion.item():.3f}'
             )
+    del a
+    del l
+    del y
+    # GPU memory delete
+    torch.cuda.empty_cache()
     return loss.avg.item()
 
 def test_epoch(epoch, test_dataloader, model, criterion):
@@ -129,6 +116,11 @@ def test_epoch(epoch, test_dataloader, model, criterion):
         f"Test epoch {epoch}: Average losses:"
         f"\tLoss: {loss.avg:.3f}\n"
     )
+    del a
+    del y
+    del y
+    # GPU memory delete
+    torch.cuda.empty_cache()
     return loss.avg.item()
 
 
@@ -136,25 +128,6 @@ def save_checkpoint(state, is_best, q, h, w, filename="checkpoint\\"):
     torch.save(state, filename + h+"x"+w+"_"+ q + ".pth.tar")
     if is_best:
         shutil.copyfile(filename +  h+"x"+w+"_"+ q + ".pth.tar", filename + "best_loss_" +  h+"x"+w+"_"+ q + ".pth.tar")
-
-
-
-class CSVLogger():
-    def __init__(self, fieldnames, filename='log.csv'):
-        self.filename = filename
-        self.csv_file = open(filename, 'a')
-        # Write model configuration at top of csv
-        writer = csv.writer(self.csv_file)
-        self.writer = csv.DictWriter(self.csv_file, fieldnames=fieldnames)
-
-    # self.writer.writeheader()
-    # self.csv_file.flush()
-    def writerow(self, row):
-        self.writer.writerow(row)
-        self.csv_file.flush()
-
-    def close(self):
-        self.csv_file.close()
 
 
 def main(argv):
@@ -171,6 +144,8 @@ def main(argv):
     test_transforms = transforms.Compose(
         [transforms.ToTensor()]
     )
+    path_model_cluster = os.path.join(config.cluster_checkpoint, str(args.height)+"x"+str(args.width) + "_" + str(args.quality) + '.pkl')
+
     train_dataset = TAPNN(os.path.join(args.dataset,  str(args.quality), str(args.height)+"x"+str(args.width)), args.height, args.width, transform=train_transforms, is_test=False)
     test_dataset = TAPNN(os.path.join(config.valid_numpy_path, str(args.quality), str(args.height)+"x"+str(args.width)), args.height, args.width, transform=test_transforms, is_test = True)
     device = "cuda" if torch.cuda.is_available() else "cpu"
@@ -199,9 +174,9 @@ def main(argv):
     model.cuda()
 
     optimizer = optim.SGD(model.parameters(), lr=args.learning_rate)
-    #     lr_scheduler = optim.lr_scheduler.ReduceLROnPlateau(optimizer, "min", patience=20)
-    lr_scheduler = optim.lr_scheduler.MultiStepLR(optimizer, milestones=[400, 700], gamma=0.2)
-    criterion = nn.MSELoss()
+    lr_scheduler = optim.lr_scheduler.ReduceLROnPlateau(optimizer, "min", patience=20)
+    # lr_scheduler = optim.lr_scheduler.MultiStepLR(optimizer, milestones=[400, 700], gamma=0.2)
+    criterion = nn.L1Loss()
 
     filename = "log_csv\\"+str(args.height)+"x"+str(args.width)+"_" + str(args.quality) + ".csv"
     csv_logger = CSVLogger(
@@ -233,7 +208,7 @@ def main(argv):
             epoch,
         )
         loss = test_epoch(epoch, test_dataloader, model, criterion)
-        lr_scheduler.step()
+        lr_scheduler.step(loss)
         print(f"Train epoch {epoch}: "
                 f'\tTrain Loss: {train_loss:.3f}'
               f'\tTest Loss: {loss:.3f}')
