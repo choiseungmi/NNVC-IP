@@ -77,24 +77,6 @@ def check_list(y_path):
         return_path =  f.read().splitlines()
     return return_path
 
-def get_files(path_to_files, h, w):
-    above_path = os.path.join(path_to_files, "above")
-    left_path = os.path.join(path_to_files, "left")
-    y_path = os.path.join(path_to_files, "y")
-
-    write_list(above_path, left_path, y_path, h, w)
-    samples = check_list(y_path)
-
-    fn_imgs = []
-    for seq in samples:
-        above = np.int8(np.load(os.path.join(above_path, seq)))
-        left = np.int8(np.load(os.path.join(left_path, seq)))
-        picture = np.zeros((above.shape[1], above.shape[1]), np.uint8)
-        picture[:above.shape[0], :above.shape[1]] = above
-        picture[above.shape[0]:, :above.shape[0]] = left
-        fn_imgs.append(picture)
-    return np.array(fn_imgs)
-
 def feature_vector(img_arr, model):
     if img_arr.shape[2] == 1:
         img_arr = img_arr.repeat(3, axis=2)
@@ -149,6 +131,24 @@ def prepare_image(path_to_files, model, h, w):
     #img_feature_vector = feature_vectors(imgs_dict, model)
     #images = list(img_feature_vector.values())
     return imgs_dict
+
+def get_files(path_to_files, h, w):
+    above_path = os.path.join(path_to_files, "above")
+    left_path = os.path.join(path_to_files, "left")
+    y_path = os.path.join(path_to_files, "y")
+
+    write_list(above_path, left_path, y_path, h, w)
+    samples = check_list(y_path)
+
+    fn_imgs = []
+    for seq in samples:
+        above = np.int8(np.load(os.path.join(above_path, seq)))
+        left = np.int8(np.load(os.path.join(left_path, seq)))
+        picture = np.zeros((above.shape[1], above.shape[1]), np.uint8)
+        picture[:above.shape[0], :above.shape[1]] = above
+        picture[above.shape[0]:, :above.shape[0]] = left
+        fn_imgs.append(picture)
+    return np.array(fn_imgs)
 
 def inference(images, km):
     return km.predict(images)

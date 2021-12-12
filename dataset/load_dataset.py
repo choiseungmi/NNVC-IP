@@ -35,21 +35,52 @@ def write_list(above_path, left_path, y_path, h, w):
 
 def check_list(y_path, is_test):
     with open(os.path.join(y_path[:-2], "seq.txt"), "r") as f:
-        return_path =  f.read().splitlines()
+        return_path = f.read().splitlines()
     # if is_test:
     #     return return_path[:500]
     # return return_path[500:]
     return return_path
 
+def check_list_cluster(y_path, k):
+    with open(os.path.join(y_path[:-2], "seq_"+str(k)+".txt"), "r") as f:
+        return_path = f.read().splitlines()
+    return return_path
+
+def prepare_image(path_to_files, h, w, km):
+    above_path = os.path.join(path_to_files, "above")
+    left_path = os.path.join(path_to_files, "left")
+    y_path = os.path.join(path_to_files, "y")
+
+    write_list(above_path, left_path, y_path, h, w)
+    samples = sorted(check_list(y_path))
+
+    fn_imgs = []
+    for seq in samples:
+        above = np.int8(np.load(os.path.join(above_path, seq)))
+        left = np.int8(np.load(os.path.join(left_path, seq)))
+        picture = np.zeros((above.shape[1], above.shape[1]), np.uint8)
+        picture[:above.shape[0], :above.shape[1]] = above
+        picture[above.shape[0]:, :above.shape[0]] = left
+        fn_imgs.append(picture)
+
+    imgs_dict = np.array(fn_imgs)
+    nsamples, nx, ny = imgs_dict.shape
+    imgs_dict = imgs_dict.reshape((nsamples, nx * ny))
+    predict = km.predict(imgs_dict)
+
+    for i, k in enumerate(predict):
+        with open(os.path.join(y_path[:-2], "seq_"+str(k)+".txt"), 'wa') as f:
+            f.write(samples[i]+"\n")
+
 class TAPNN(Dataset):
-    def __init__(self, root, h, w, transform, is_test):
+    def __init__(self, root, h, w, transform, km, k):
         self.root = root
         self.above_path = os.path.join(self.root, "above")
         self.left_path = os.path.join(self.root, "left")
         self.y_path = os.path.join(self.root, "y")
 
-        write_list(self.above_path, self.left_path, self.y_path, h, w)
-        self.samples = check_list(self.y_path, is_test)
+        prepare_image(self.root, h, w, km)
+        self.samples = check_list_cluster(self.y_path, k)
         self.transform = transform
 
     def __len__(self) -> int:

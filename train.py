@@ -12,6 +12,8 @@ import os
 from torch.utils.tensorboard import SummaryWriter
 
 import config
+
+from cluster import load_cluster
 from models.tapnn import TextureAdaptivePNN, block_size
 from dataset.load_dataset import TAPNN
 from util import AverageMeter, CSVLogger
@@ -58,6 +60,7 @@ def parse_args(argv):
     parser.add_argument(
         "--seed", type=float, help="Set random seed for reproducibility"
     )
+    parser.add_argument('--clusterk', type=int, default=0, help='cluster index (default: 0)')
     parser.add_argument("--checkpoint", type=str, help="Path to a checkpoint")
     parser.add_argument("-hgt", "--height", type=int, default=32, help="block height")
     parser.add_argument("-wdt", "--width", type=int, default=32, help="block width")
@@ -127,7 +130,7 @@ def test_epoch(epoch, test_dataloader, model, criterion):
 def save_checkpoint(state, is_best, q, h, w, filename="checkpoint\\"):
     torch.save(state, filename + h+"x"+w+"_"+ q + ".pth.tar")
     if is_best:
-        shutil.copyfile(filename +  h+"x"+w+"_"+ q + ".pth.tar", filename + "best_loss_" +  h+"x"+w+"_"+ q + ".pth.tar")
+        shutil.copyfile(filename +  h+"x"+w+"_"+ q + ".pth.tar", filename + "best_loss_" + h+"x"+w+"_"+ q + ".pth.tar")
 
 
 def main(argv):
@@ -145,9 +148,12 @@ def main(argv):
         [transforms.ToTensor()]
     )
     path_model_cluster = os.path.join(config.cluster_checkpoint, str(args.height)+"x"+str(args.width) + "_" + str(args.quality) + '.pkl')
+    km = load_cluster(path_model_cluster)
 
-    train_dataset = TAPNN(os.path.join(args.dataset,  str(args.quality), str(args.height)+"x"+str(args.width)), args.height, args.width, transform=train_transforms, is_test=False)
-    test_dataset = TAPNN(os.path.join(config.valid_numpy_path, str(args.quality), str(args.height)+"x"+str(args.width)), args.height, args.width, transform=test_transforms, is_test = True)
+    train_dataset = TAPNN(os.path.join(args.dataset,  str(args.quality), str(args.height)+"x"+str(args.width)), args.height, args.width,
+                          transform=train_transforms, km=km, k=args.clusterk)
+    test_dataset = TAPNN(os.path.join(config.valid_numpy_path, str(args.quality), str(args.height)+"x"+str(args.width)), args.height, args.width,
+                         transform=test_transforms, km=km, k=args.clusterk)
     device = "cuda" if torch.cuda.is_available() else "cpu"
     print(torch.cuda.is_available())
     print(device)

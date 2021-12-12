@@ -149,7 +149,8 @@ def main(args):
         args.data = config.train_numpy_path
     end = time.time()
     #dataset = datasets.ImageFolder(args.data, transform=transforms.Compose(tra))
-    dataset = ClusterDataset(os.path.join(args.data,  str(args.quality), str(args.height)+"x"+str(args.width)), args.height, args.width, transform=transforms.Compose(tra))
+    dataset = ClusterDataset(os.path.join(args.data,  str(args.quality), str(args.height)+"x"+str(args.width)), args.height, args.width,
+                             transform=transforms.Compose(tra))
     if args.verbose:
         print('Load dataset: {0:.2f} s'.format(time.time() - end))
 
