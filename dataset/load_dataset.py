@@ -10,7 +10,7 @@ from torch.utils.data import Dataset
 import numpy as np
 from tqdm import tqdm
 from torchvision import transforms
-from model.cnn import block_size
+from models.tapnn import block_size
 
 def write_list(above_path, left_path, y_path, h, w):
     file_path = os.path.join(y_path[:-2], 'seq.txt')
@@ -28,6 +28,7 @@ def write_list(above_path, left_path, y_path, h, w):
             error_num+=1
             continue
         return_path.append(seq)
+    print(error_num)
     with open(file_path, 'w') as f:
         for i in return_path:
             f.write(i+"\n")
@@ -65,3 +66,30 @@ class TAPNN(Dataset):
         y = self.transform(y).float()
 
         return above, left, y
+
+class ClusterDataset(Dataset):
+    def __init__(self, root, h, w, transform):
+        self.root = root
+        self.above_path = os.path.join(self.root, "above")
+        self.left_path = os.path.join(self.root, "left")
+        self.y_path = os.path.join(self.root, "y")
+
+        write_list(self.above_path, self.left_path, self.y_path, h, w)
+        self.samples = check_list(self.y_path, False)
+        self.transform = transform
+
+    def __len__(self) -> int:
+        return len(self.samples)
+
+    def __getitem__(self, idx: int) -> Tuple[Tensor, int]:
+        seq = self.samples[idx]
+        above = np.int8(np.load(os.path.join(self.above_path, seq)))
+        left = np.int8(np.load(os.path.join(self.left_path, seq)))
+        picture = np.zeros((above.shape[1], above.shape[1]), np.uint8)
+        picture[:above.shape[0],:above.shape[1]] = above
+        picture[above.shape[0]:, :above.shape[0]] = left
+
+        picture = self.transform(picture).float()
+        pseudolabels = [idx] * 8
+
+        return picture, pseudolabels

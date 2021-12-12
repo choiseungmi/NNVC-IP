@@ -1,9 +1,11 @@
 *.idea
 config.py
-data/
+train_data/
 valid_data/
 log_csv/
 runs/
 temp/
 *.pyc
 *.bat
+*.pth
+*.pkl
