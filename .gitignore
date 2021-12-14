@@ -9,3 +9,4 @@ temp/
 *.bat
 *.pth
 *.pkl
+*.tar
