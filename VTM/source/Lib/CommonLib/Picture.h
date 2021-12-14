@@ -122,6 +122,8 @@ struct Picture : public UnitArea
   const CPelBuf     getPredBuf(const CompArea &blk) const;
          PelUnitBuf getPredBuf(const UnitArea &unit);
   const CPelUnitBuf getPredBuf(const UnitArea &unit) const;
+         PelUnitBuf getPredBuf();
+  const CPelUnitBuf getPredBuf() const;
 
          PelBuf     getResiBuf(const CompArea &blk);
   const CPelBuf     getResiBuf(const CompArea &blk) const;

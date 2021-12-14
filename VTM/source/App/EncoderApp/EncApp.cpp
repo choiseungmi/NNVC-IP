@@ -1088,13 +1088,11 @@ bool EncApp::encodePrep( bool& eos )
   // call encoding function for one frame
   if( m_isField )
   {
-    keepDoing = m_cEncLib.encodePrep(eos, m_flush ? 0 : m_orgPic, m_flush ? 0 : m_trueOrgPic, snrCSC, m_recBufList,
-                                     m_predcBufList, m_numEncoded, m_isTopFieldFirst);
+    keepDoing = m_cEncLib.encodePrep(eos, m_flush ? 0 : m_orgPic, m_flush ? 0 : m_trueOrgPic, snrCSC, m_recBufList, m_predcBufList, m_numEncoded, m_isTopFieldFirst);
   }
   else
   {
-    keepDoing = m_cEncLib.encodePrep(eos, m_flush ? 0 : m_orgPic, m_flush ? 0 : m_trueOrgPic, snrCSC, m_recBufList,
-                                     m_predcBufList, m_numEncoded);
+    keepDoing = m_cEncLib.encodePrep(eos, m_flush ? 0 : m_orgPic, m_flush ? 0 : m_trueOrgPic, snrCSC, m_recBufList, m_predcBufList, m_numEncoded);
   }
 
   return keepDoing;
@@ -1125,7 +1123,8 @@ bool EncApp::encode()
     // write bistream to file if necessary
     if( m_numEncoded > 0 )
     {
-      xWriteOutput(m_numEncoded, m_recBufList, m_predcBufList);
+      xWriteOutput(m_numEncoded, m_recBufList);
+      //xWritePredOutput(m_numEncoded, m_predcBufList);
     }
     // temporally skip frames
     if( m_temporalSubsampleRatio > 1 )
@@ -1178,13 +1177,6 @@ void EncApp::xWriteOutput( int iNumEncoded, std::list<PelUnitBuf*>& recBufList )
                                       false, // TODO: m_packedYUVMode,
                                       m_confWinLeft, m_confWinRight, m_confWinTop, m_confWinBottom, NUM_CHROMA_FORMAT, m_isTopFieldFirst );
       }
-      if (!m_predictorFileName.empty())
-      {
-        m_cVideoIOYuvPredictorFile.write(*pcPicYuvRecTop, *pcPicYuvRecBottom, ipCSC,
-                                         false,   // TODO: m_packedYUVMode,
-                                         m_confWinLeft, m_confWinRight, m_confWinTop, m_confWinBottom,
-                                         NUM_CHROMA_FORMAT, m_isTopFieldFirst);
-      }
     }
   }
   else
@@ -1204,24 +1196,81 @@ void EncApp::xWriteOutput( int iNumEncoded, std::list<PelUnitBuf*>& recBufList )
           const PPS& pps = *m_cEncLib.getPPS( ( sps.getMaxPicWidthInLumaSamples() != pcPicYuvRec->get( COMPONENT_Y ).width || sps.getMaxPicHeightInLumaSamples() != pcPicYuvRec->get( COMPONENT_Y ).height ) ? ENC_PPS_ID_RPR : 0 );
 
           m_cVideoIOYuvReconFile.writeUpscaledPicture( sps, pps, *pcPicYuvRec, ipCSC, m_packedYUVMode, m_cEncLib.getUpscaledOutput(), NUM_CHROMA_FORMAT, m_bClipOutputVideoToRec709Range );
-          m_cVideoIOYuvPredictorFile.writeUpscaledPicture(sps, pps, *pcPicYuvRec, ipCSC, m_packedYUVMode,
-                                                          m_cEncLib.getUpscaledOutput(), NUM_CHROMA_FORMAT,
-                                                          m_bClipOutputVideoToRec709Range);
         }
         else
         {
           m_cVideoIOYuvReconFile.write( pcPicYuvRec->get( COMPONENT_Y ).width, pcPicYuvRec->get( COMPONENT_Y ).height, *pcPicYuvRec, ipCSC, m_packedYUVMode,
             m_confWinLeft, m_confWinRight, m_confWinTop, m_confWinBottom, NUM_CHROMA_FORMAT, m_bClipOutputVideoToRec709Range );
-          m_cVideoIOYuvPredictorFile.write(pcPicYuvRec->get(COMPONENT_Y).width, pcPicYuvRec->get(COMPONENT_Y).height,
-                                       *pcPicYuvRec, ipCSC, m_packedYUVMode, m_confWinLeft, m_confWinRight,
-                                       m_confWinTop, m_confWinBottom, NUM_CHROMA_FORMAT,
-                                       m_bClipOutputVideoToRec709Range);
         }
       }
     }
   }
 }
 
+void EncApp::xWritePredOutput(int iNumEncoded, std::list<PelUnitBuf *> &recBufList)
+{
+  const InputColourSpaceConversion ipCSC =
+    (!m_outputInternalColourSpace) ? m_inputColourSpaceConvert : IPCOLOURSPACE_UNCHANGED;
+  std::list<PelUnitBuf *>::iterator iterPicYuvRec = recBufList.end();
+  int                               i;
+
+  for (i = 0; i < iNumEncoded; i++)
+  {
+    --iterPicYuvRec;
+  }
+
+  if (m_isField)
+  {
+    // Reinterlace fields
+    for (i = 0; i < iNumEncoded / 2; i++)
+    {
+      const PelUnitBuf *pcPicYuvRecTop    = *(iterPicYuvRec++);
+      const PelUnitBuf *pcPicYuvRecBottom = *(iterPicYuvRec++);
+
+      if (!m_predictorFileName.empty())
+      {
+        m_cVideoIOYuvPredictorFile.write(*pcPicYuvRecTop, *pcPicYuvRecBottom, ipCSC,
+                                         false,   // TODO: m_packedYUVMode,
+                                         m_confWinLeft, m_confWinRight, m_confWinTop, m_confWinBottom,
+                                         NUM_CHROMA_FORMAT, m_isTopFieldFirst);
+      }
+    }
+  }
+  else
+  {
+    for (i = 0; i < iNumEncoded; i++)
+    {
+      const PelUnitBuf *pcPicYuvRec = *(iterPicYuvRec++);
+      if (!m_predictorFileName.empty())
+      {
+#if JVET_R0058
+        if (m_cEncLib.isResChangeInClvsEnabled() && m_cEncLib.getUpscaledOutput())
+#else
+        if (m_cEncLib.isRPREnabled() && m_cEncLib.getUpscaledOutput())
+#endif
+        {
+          const SPS &sps = *m_cEncLib.getSPS(0);
+          const PPS &pps =
+            *m_cEncLib.getPPS((sps.getMaxPicWidthInLumaSamples() != pcPicYuvRec->get(COMPONENT_Y).width
+                               || sps.getMaxPicHeightInLumaSamples() != pcPicYuvRec->get(COMPONENT_Y).height)
+                                ? ENC_PPS_ID_RPR
+                                : 0);
+
+          m_cVideoIOYuvPredictorFile.writeUpscaledPicture(sps, pps, *pcPicYuvRec, ipCSC, m_packedYUVMode,
+                                                          m_cEncLib.getUpscaledOutput(), NUM_CHROMA_FORMAT,
+                                                          m_bClipOutputVideoToRec709Range);
+        }
+        else
+        {
+          m_cVideoIOYuvPredictorFile.write(pcPicYuvRec->get(COMPONENT_Y).width, pcPicYuvRec->get(COMPONENT_Y).height,
+                                           *pcPicYuvRec, ipCSC, m_packedYUVMode, m_confWinLeft, m_confWinRight,
+                                           m_confWinTop, m_confWinBottom, NUM_CHROMA_FORMAT,
+                                           m_bClipOutputVideoToRec709Range);
+        }
+      }
+    }
+  }
+}
 
 void EncApp::outputAU( const AccessUnit& au )
 {

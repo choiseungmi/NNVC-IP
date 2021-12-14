@@ -209,8 +209,7 @@ public:
 
   void  init        ( EncLib* pcEncLib );
 
-  void  compressGOP(int iPOCLast, int iNumPicRcvd, PicList &rcListPic, std::list<PelUnitBuf *> &rcListPicYuvRec,
-                    std::list<PelUnitBuf *> &predListPicYuvRecOut, 
+  void  compressGOP(int iPOCLast, int iNumPicRcvd, PicList &rcListPic, std::list<PelUnitBuf *> &rcListPicYuvRec, std::list<PelUnitBuf *> &predListPicYuvRecOut, 
                       bool isField, bool isTff, const InputColourSpaceConversion snr_conversion, const bool printFrameMSE
                     , bool isEncodeLtRef
                     , const int picIdInGOP
@@ -268,6 +267,8 @@ protected:
   void  xPicInitLMCS       (Picture *pic, PicHeader *picHeader, Slice *slice);
   void  xGetBuffer        ( PicList& rcListPic, std::list<PelUnitBuf*>& rcListPicYuvRecOut,
                             int iNumPicRcvd, int iTimeOffset, Picture*& rpcPic, int pocCurr, bool isField );
+  void  xGetPredBuffer(PicList &rcListPic, std::list<PelUnitBuf *> &rcListPicYuvRecOut, int iNumPicRcvd, int iTimeOffset,
+                   Picture *&rpcPic, int pocCurr, bool isField);
 
 #if JVET_O0756_CALCULATE_HDRMETRICS
   void xCalculateHDRMetrics ( Picture* pcPic, double deltaE[hdrtoolslib::NB_REF_WHITE], double psnrL[hdrtoolslib::NB_REF_WHITE]);

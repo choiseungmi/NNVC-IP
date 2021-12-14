@@ -316,6 +316,8 @@ const CPelBuf     Picture::getTrueOrigBuf(const CompArea &blk)  const { return g
 const CPelBuf     Picture::getPredBuf(const CompArea &blk)  const { return getBuf(blk,  PIC_PREDICTION); }
        PelUnitBuf Picture::getPredBuf(const UnitArea &unit)       { return getBuf(unit, PIC_PREDICTION); }
 const CPelUnitBuf Picture::getPredBuf(const UnitArea &unit) const { return getBuf(unit, PIC_PREDICTION); }
+       PelUnitBuf Picture::getPredBuf()                           { return  M_BUFS(scheduler.getSplitPicId(),  PIC_PREDICTION); }
+const CPelUnitBuf Picture::getPredBuf()                     const { return  M_BUFS(scheduler.getSplitPicId(), PIC_PREDICTION); }
 
        PelBuf     Picture::getResiBuf(const CompArea &blk)        { return getBuf(blk,  PIC_RESIDUAL); }
 const CPelBuf     Picture::getResiBuf(const CompArea &blk)  const { return getBuf(blk,  PIC_RESIDUAL); }

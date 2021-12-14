@@ -1492,7 +1492,6 @@ PelBuf CodingStructure::getBuf( const CompArea &blk, const PictureType &type )
 
   return buf->getBuf( cFinal );
 }
-
 const CPelBuf CodingStructure::getBuf( const CompArea &blk, const PictureType &type ) const
 {
   if (!blk.valid())
