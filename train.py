@@ -120,17 +120,17 @@ def test_epoch(epoch, test_dataloader, model, criterion):
         f"\tLoss: {loss.avg:.3f}\n"
     )
     del a
-    del y
+    del l
     del y
     # GPU memory delete
     torch.cuda.empty_cache()
     return loss.avg.item()
 
 
-def save_checkpoint(state, is_best, q, h, w, filename="checkpoint\\"):
-    torch.save(state, filename + h+"x"+w+"_"+ q + ".pth.tar")
+def save_checkpoint(state, is_best, q, h, w, k, filename="checkpoint\\"):
+    torch.save(state, filename + h+"x"+w+"_"+ q  +"_" + k + ".pth.tar")
     if is_best:
-        shutil.copyfile(filename +  h+"x"+w+"_"+ q + ".pth.tar", filename + "best_loss_" + h+"x"+w+"_"+ q + ".pth.tar")
+        shutil.copyfile(filename +  h+"x"+w+"_"+ q  +"_" + k + ".pth.tar", filename + "best_loss_" + h+"x"+w+"_"+ q +"_" + k + ".pth.tar")
 
 
 def main(argv):
@@ -180,11 +180,11 @@ def main(argv):
     model.cuda()
 
     optimizer = optim.SGD(model.parameters(), lr=args.learning_rate)
-    lr_scheduler = optim.lr_scheduler.ReduceLROnPlateau(optimizer, "min", patience=20)
+    lr_scheduler = optim.lr_scheduler.ReduceLROnPlateau(optimizer, "min", patience=15)
     # lr_scheduler = optim.lr_scheduler.MultiStepLR(optimizer, milestones=[400, 700], gamma=0.2)
     criterion = nn.L1Loss()
 
-    filename = "log_csv\\"+str(args.height)+"x"+str(args.width)+"_" + str(args.quality) + ".csv"
+    filename = "log_csv\\"+str(args.height)+"x"+str(args.width)+"_" + str(args.quality) +"_" + str(args.clusterk) + ".csv"
     csv_logger = CSVLogger(
         fieldnames=['epoch', 'train_loss', 'test_loss'],
         filename=filename)
@@ -219,7 +219,7 @@ def main(argv):
                 f'\tTrain Loss: {train_loss:.3f}'
               f'\tTest Loss: {loss:.3f}')
 
-        writer.add_scalars("Loss", {'train': train_loss,
+        writer.add_scalars("Loss_"+str(args.quality)+"_"+str(args.clusterk), {'train': train_loss,
                                     'valid': loss}, epoch)
 
         row = {'epoch': str(epoch), 'train_loss': str(train_loss), 'test_loss': str(loss)}
@@ -237,7 +237,7 @@ def main(argv):
                     "lr_scheduler": lr_scheduler.state_dict(),
                 },
                 is_best,
-                str(args.quality), str(args.height), str(args.width)
+                str(args.quality), str(args.height), str(args.width), str(args.clusterk)
             )
         print(f"Total TIme: {time.time() - start}")
     csv_logger.close()  ###

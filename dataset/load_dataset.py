@@ -51,8 +51,10 @@ def prepare_image(path_to_files, h, w, km):
     left_path = os.path.join(path_to_files, "left")
     y_path = os.path.join(path_to_files, "y")
 
+    if os.path.exists(os.path.join(y_path[:-2], "seq_"+str(0)+".txt")): return 0
+
     write_list(above_path, left_path, y_path, h, w)
-    samples = sorted(check_list(y_path))
+    samples = sorted(check_list(y_path, False))
 
     fn_imgs = []
     for seq in samples:
@@ -69,7 +71,7 @@ def prepare_image(path_to_files, h, w, km):
     predict = km.predict(imgs_dict)
 
     for i, k in enumerate(predict):
-        with open(os.path.join(y_path[:-2], "seq_"+str(k)+".txt"), 'wa') as f:
+        with open(os.path.join(y_path[:-2], "seq_"+str(k)+".txt"), 'a') as f:
             f.write(samples[i]+"\n")
 
 class TAPNN(Dataset):
