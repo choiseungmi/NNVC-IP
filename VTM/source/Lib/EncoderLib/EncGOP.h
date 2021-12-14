@@ -209,8 +209,7 @@ public:
 
   void  init        ( EncLib* pcEncLib );
 
-  void  compressGOP(int iPOCLast, int iNumPicRcvd, PicList &rcListPic, std::list<PelUnitBuf *> &rcListPicYuvRec,
-                    std::list<PelUnitBuf *> &predListPicYuvRecOut, 
+  void  compressGOP ( int iPOCLast, int iNumPicRcvd, PicList& rcListPic, std::list<PelUnitBuf*>& rcListPicYuvRec,
                       bool isField, bool isTff, const InputColourSpaceConversion snr_conversion, const bool printFrameMSE
                     , bool isEncodeLtRef
                     , const int picIdInGOP

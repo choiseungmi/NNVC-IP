@@ -71,7 +71,6 @@ private:
   EncLib            m_cEncLib;                    ///< encoder class
   VideoIOYuv        m_cVideoIOYuvInputFile;       ///< input YUV file
   VideoIOYuv        m_cVideoIOYuvReconFile;       ///< output reconstruction file
-  VideoIOYuv        m_cVideoIOYuvPredictorFile;       ///< output reconstruction file
   int               m_iFrameRcvd;                 ///< number of received frames
   uint32_t          m_essentialBytes;
   uint32_t          m_totalBytes;
@@ -82,8 +81,7 @@ private:
 
 private:
   // initialization
-  void xCreateLib(std::list<PelUnitBuf *> &recBufList, std::list<PelUnitBuf *> &predcBufList,
-                  const int layerId);            ///< create files & encoder class
+  void xCreateLib( std::list<PelUnitBuf*>& recBufList, const int layerId );         ///< create files & encoder class
   void xInitLibCfg ();                           ///< initialize internal variables
   void xInitLib    (bool isFieldCoding);         ///< initialize encoder class
   void xDestroyLib ();                           ///< destroy encoder class
@@ -96,7 +94,6 @@ private:
   void printChromaFormat();
 
   std::list<PelUnitBuf*> m_recBufList;
-  std::list<PelUnitBuf *> m_predcBufList;
   int                    m_numEncoded;
   PelStorage*            m_trueOrgPic;
   PelStorage*            m_orgPic;
