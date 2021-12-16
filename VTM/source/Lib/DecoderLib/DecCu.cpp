@@ -249,6 +249,9 @@ void DecCu::xIntraRecBlk( TransformUnit& tu, const ComponentID compID )
     int adj = m_pcReshape->calculateChromaAdjVpduNei(tu, areaY);
     tu.setChromaAdj(adj);
   }
+#if DECODER_PRED
+  cs.picture->getPredBuf2(area).copyFrom(piPred);
+#endif
   //===== inverse transform =====
   PelBuf piResi = cs.getResiBuf( area );
 
@@ -685,6 +688,9 @@ void DecCu::xReconInter(CodingUnit &cu)
 
   DTRACE    ( g_trace_ctx, D_TMP, "pred " );
   DTRACE_CRC( g_trace_ctx, D_TMP, *cu.cs, cu.cs->getPredBuf( cu ), &cu.Y() );
+#if DECODER_PRED
+  cu.cs->picture->getPredBuf2(cu).copyFrom(cu.cs->getPredBuf(cu));
+#endif
 
   // inter recon
   xDecodeInterTexture(cu);

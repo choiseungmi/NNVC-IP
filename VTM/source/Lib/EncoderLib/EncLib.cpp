@@ -598,8 +598,7 @@ bool EncLib::encodePrep(bool flush, PelStorage *pcPicYuvOrg, PelStorage *cPicYuv
   if( m_compositeRefEnabled && m_cGOPEncoder.getPicBg()->getSpliceFull() && m_iPOCLast >= 10 && m_iNumPicRcvd == 0 && m_cGOPEncoder.getEncodedLTRef() == false )
   {
     Picture* picCurr = NULL;
-    xGetNewPicBuffer( rcListPicYuvRecOut, picCurr, 2 );
-    xGetNewPicBuffer(predListPicYuvRecOut, picCurr, 2);
+    xGetNewPicBuffer(rcListPicYuvRecOut, predListPicYuvRecOut, picCurr, 2);
     const PPS *pps = m_ppsMap.getPS( 2 );
     const SPS *sps = m_spsMap.getPS( pps->getSPSId() );
 
@@ -669,8 +668,7 @@ bool EncLib::encodePrep(bool flush, PelStorage *pcPicYuvOrg, PelStorage *cPicYuv
       ppsID = m_vps->getGeneralLayerIdx( m_layerId );
     }
 
-    xGetNewPicBuffer( rcListPicYuvRecOut, pcPicCurr, ppsID );
-    xGetNewPicBuffer(predListPicYuvRecOut, pcPicCurr, ppsID);
+    xGetNewPicBuffer(rcListPicYuvRecOut, predListPicYuvRecOut, pcPicCurr, ppsID);
 
     const PPS *pPPS = ( ppsID < 0 ) ? m_ppsMap.getFirstPS() : m_ppsMap.getPS( ppsID );
     const SPS *pSPS = m_spsMap.getPS( pPPS->getSPSId() );
@@ -825,8 +823,7 @@ bool EncLib::encodePrep(bool flush, PelStorage *pcPicYuvOrg, PelStorage *pcPicYu
       const bool isTopField = isTff == ( fieldNum == 0 );
 
       Picture *pcField;
-      xGetNewPicBuffer( rcListPicYuvRecOut, pcField, -1 );
-      xGetNewPicBuffer(rcListPicYuvRecOut, pcField, -1);
+      xGetNewPicBuffer(rcListPicYuvRecOut, predListPicYuvRecOut, pcField, -1);
 
       for( uint32_t comp = 0; comp < ::getNumberValidComponents( pcPicYuvOrg->chromaFormat ); comp++ )
       {
@@ -926,10 +923,12 @@ bool EncLib::encode(const InputColourSpaceConversion snrCSC, std::list<PelUnitBu
  .
  \retval rpcPic obtained picture buffer
  */
-void EncLib::xGetNewPicBuffer ( std::list<PelUnitBuf*>& rcListPicYuvRecOut, Picture*& rpcPic, int ppsId )
+void EncLib::xGetNewPicBuffer(std::list<PelUnitBuf *> &rcListPicYuvRecOut, std::list<PelUnitBuf *> &predListPicYuvRecOut,
+                              Picture *&rpcPic, int ppsId)
 {
   // rotate the output buffer
   rcListPicYuvRecOut.push_back( rcListPicYuvRecOut.front() ); rcListPicYuvRecOut.pop_front();
+    predListPicYuvRecOut.push_back( predListPicYuvRecOut.front() ); predListPicYuvRecOut.pop_front();
 
   rpcPic=0;
 

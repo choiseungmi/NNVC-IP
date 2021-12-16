@@ -1124,7 +1124,7 @@ bool EncApp::encode()
     if( m_numEncoded > 0 )
     {
       xWriteOutput(m_numEncoded, m_recBufList);
-      //xWritePredOutput(m_numEncoded, m_predcBufList);
+      xWritePredOutput(m_numEncoded, m_predcBufList);
     }
     // temporally skip frames
     if( m_temporalSubsampleRatio > 1 )

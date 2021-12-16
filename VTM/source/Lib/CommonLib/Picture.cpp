@@ -208,11 +208,15 @@ void Picture::create( const ChromaFormat &_chromaFormat, const Size &size, const
   const Area a      = Area( Position(), size );
   M_BUFS( 0, PIC_RECONSTRUCTION ).create( _chromaFormat, a, _maxCUSize, margin, MEMORY_ALIGN_DEF_SIZE );
   M_BUFS( 0, PIC_RECON_WRAP ).create( _chromaFormat, a, _maxCUSize, margin, MEMORY_ALIGN_DEF_SIZE );
+#if DECODER_PRED
+    M_BUFS(0, PIC_PREDICTION2).create(_chromaFormat, a);
+#endif
 
   if( !_decoder )
   {
     M_BUFS( 0, PIC_ORIGINAL ).    create( _chromaFormat, a );
-    M_BUFS( 0, PIC_TRUE_ORIGINAL ). create( _chromaFormat, a );
+    M_BUFS(0, PIC_TRUE_ORIGINAL).create(_chromaFormat, a);
+
   }
 #if !KEEP_PRED_AND_RESI_SIGNALS
 
@@ -290,7 +294,7 @@ void Picture::destroyTempBuffers()
 #endif
   for( uint32_t t = 0; t < NUM_PIC_TYPES; t++ )
   {
-    if( t == PIC_RESIDUAL || t == PIC_PREDICTION ) M_BUFS( jId, t ).destroy();
+    if( t == PIC_RESIDUAL || t == PIC_PREDICTION) M_BUFS( jId, t ).destroy();
 #if ENABLE_SPLIT_PARALLELISM
     if( t == PIC_RECONSTRUCTION &&       jId > 0 ) M_BUFS( jId, t ).destroy();
 #endif
@@ -316,8 +320,15 @@ const CPelBuf     Picture::getTrueOrigBuf(const CompArea &blk)  const { return g
 const CPelBuf     Picture::getPredBuf(const CompArea &blk)  const { return getBuf(blk,  PIC_PREDICTION); }
        PelUnitBuf Picture::getPredBuf(const UnitArea &unit)       { return getBuf(unit, PIC_PREDICTION); }
 const CPelUnitBuf Picture::getPredBuf(const UnitArea &unit) const { return getBuf(unit, PIC_PREDICTION); }
-       PelUnitBuf Picture::getPredBuf()                           { return  M_BUFS(scheduler.getSplitPicId(),  PIC_PREDICTION); }
-const CPelUnitBuf Picture::getPredBuf()                     const { return  M_BUFS(scheduler.getSplitPicId(), PIC_PREDICTION); }
+
+#if DECODER_PRED
+      PelBuf      Picture::getPredBuf2(const CompArea &blk) { return getBuf(blk, PIC_PREDICTION2); }
+const CPelBuf     Picture::getPredBuf2(const CompArea &blk)  const { return getBuf(blk, PIC_PREDICTION2); }
+      PelUnitBuf  Picture::getPredBuf2(const UnitArea &unit) { return getBuf(unit, PIC_PREDICTION2); }
+const CPelUnitBuf Picture::getPredBuf2(const UnitArea &unit) const { return getBuf(unit, PIC_PREDICTION2); }
+      PelUnitBuf  Picture::getPredBuf2()                               { return M_BUFS(scheduler.getSplitPicId(), PIC_PREDICTION2); }
+const CPelUnitBuf Picture::getPredBuf2()                         const { return M_BUFS(scheduler.getSplitPicId(), PIC_PREDICTION2); }
+#endif
 
        PelBuf     Picture::getResiBuf(const CompArea &blk)        { return getBuf(blk,  PIC_RESIDUAL); }
 const CPelBuf     Picture::getResiBuf(const CompArea &blk)  const { return getBuf(blk,  PIC_RESIDUAL); }

@@ -1998,7 +1998,7 @@ void EncGOP::compressGOP( int iPOCLast, int iNumPicRcvd, PicList& rcListPic, std
     accessUnit.temporalId = m_pcCfg->getGOPEntry( iGOPid ).m_temporalId;
     xGetBuffer( rcListPic, rcListPicYuvRecOut,
                 iNumPicRcvd, iTimeOffset, pcPic, pocCurr, isField );
-    //xGetPredBuffer(rcListPic, predListPicYuvRecOut, iNumPicRcvd, iTimeOffset, pcPic, pocCurr, isField);
+    xGetPredBuffer(rcListPic, predListPicYuvRecOut, iNumPicRcvd, iTimeOffset, pcPic, pocCurr, isField);
     picHeader = pcPic->cs->picHeader;
     picHeader->setSPSId( pcPic->cs->pps->getSPSId() );
     picHeader->setPPSId( pcPic->cs->pps->getPPSId() );
@@ -3673,7 +3673,11 @@ void EncGOP::xGetPredBuffer(PicList &rcListPic, std::list<PelUnitBuf *> &rcListP
 
   CHECK(!(rpcPic != NULL), "Unspecified error");
   CHECK(!(rpcPic->getPOC() == pocCurr), "Unspecified error");
+#if DECODER_PRED
+  (**iterPicYuvRec) = rpcPic->getPredBuf2();
+#else
   (**iterPicYuvRec) = rpcPic->getRecoBuf();
+#endif
   return;
 }
 
