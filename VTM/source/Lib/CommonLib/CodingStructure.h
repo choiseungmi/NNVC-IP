@@ -54,6 +54,9 @@ enum PictureType
   PIC_RECONSTRUCTION = 0,
   PIC_ORIGINAL,
   PIC_TRUE_ORIGINAL,
+#if DECODER_PRED
+  PIC_PREDICTION2,
+#endif
   PIC_PREDICTION,
   PIC_RESIDUAL,
   PIC_ORG_RESI,
@@ -265,7 +268,6 @@ public:
   const CPelBuf       getPredBuf(const CompArea &blk) const;
          PelUnitBuf   getPredBuf(const UnitArea &unit);
   const CPelUnitBuf   getPredBuf(const UnitArea &unit) const;
-
          PelBuf       getResiBuf(const CompArea &blk);
   const CPelBuf       getResiBuf(const CompArea &blk) const;
          PelUnitBuf   getResiBuf(const UnitArea &unit);
@@ -323,7 +325,7 @@ private:
   inline const CPelBuf       getBuf(const CompArea &blk,  const PictureType &type) const;
   inline        PelUnitBuf   getBuf(const UnitArea &unit, const PictureType &type);
   inline const CPelUnitBuf   getBuf(const UnitArea &unit, const PictureType &type) const;
-};
+  };
 
 
 static inline uint32_t getNumberValidTBlocks(const PreCalcValues& pcv) { return (pcv.chrFormat==CHROMA_400) ? 1 : ( pcv.multiBlock422 ? MAX_NUM_TBLOCKS : MAX_NUM_COMPONENT ); }

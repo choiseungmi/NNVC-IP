@@ -1,6 +1,6 @@
 *.idea
 config.py
-train_data/
+data/
 valid_data/
 log_csv/
 runs/

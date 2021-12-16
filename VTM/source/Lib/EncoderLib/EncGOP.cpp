@@ -1899,8 +1899,7 @@ void EncGOP::xPicInitLMCS(Picture *pic, PicHeader *picHeader, Slice *slice)
 // ====================================================================================================================
 // Public member functions
 // ====================================================================================================================
-void EncGOP::compressGOP( int iPOCLast, int iNumPicRcvd, PicList& rcListPic,
-                          std::list<PelUnitBuf*>& rcListPicYuvRecOut,
+void EncGOP::compressGOP( int iPOCLast, int iNumPicRcvd, PicList& rcListPic, std::list<PelUnitBuf *> &rcListPicYuvRecOut, std::list<PelUnitBuf *> &predListPicYuvRecOut,
                           bool isField, bool isTff, const InputColourSpaceConversion snr_conversion, const bool printFrameMSE
                         , bool isEncodeLtRef
                         , const int picIdInGOP
@@ -1999,6 +1998,7 @@ void EncGOP::compressGOP( int iPOCLast, int iNumPicRcvd, PicList& rcListPic,
     accessUnit.temporalId = m_pcCfg->getGOPEntry( iGOPid ).m_temporalId;
     xGetBuffer( rcListPic, rcListPicYuvRecOut,
                 iNumPicRcvd, iTimeOffset, pcPic, pocCurr, isField );
+    xGetPredBuffer(rcListPic, predListPicYuvRecOut, iNumPicRcvd, iTimeOffset, pcPic, pocCurr, isField);
     picHeader = pcPic->cs->picHeader;
     picHeader->setSPSId( pcPic->cs->pps->getSPSId() );
     picHeader->setPPSId( pcPic->cs->pps->getPPSId() );
@@ -3638,6 +3638,46 @@ void EncGOP::xGetBuffer( PicList&                  rcListPic,
   CHECK(!(rpcPic->getPOC() == pocCurr), "Unspecified error");
 
   (**iterPicYuvRec) = rpcPic->getRecoBuf();
+  return;
+}
+
+void EncGOP::xGetPredBuffer(PicList &rcListPic, std::list<PelUnitBuf *> &rcListPicYuvRecOut, int iNumPicRcvd,
+                        int iTimeOffset, Picture *&rpcPic, int pocCurr, bool isField)
+{
+  int i;
+  //  Rec. output
+  std::list<PelUnitBuf *>::iterator iterPicYuvRec = rcListPicYuvRecOut.end();
+
+  if (isField && pocCurr > 1 && m_iGopSize != 1)
+  {
+    iTimeOffset--;
+  }
+
+  int multipleFactor = m_pcCfg->getUseCompositeRef() ? 2 : 1;
+  for (i = 0; i < (iNumPicRcvd * multipleFactor - iTimeOffset + 1); i += multipleFactor)
+  {
+    iterPicYuvRec--;
+  }
+
+  //  Current pic.
+  PicList::iterator iterPic = rcListPic.begin();
+  while (iterPic != rcListPic.end())
+  {
+    rpcPic = *(iterPic);
+    if (rpcPic->getPOC() == pocCurr && rpcPic->layerId == m_pcEncLib->getLayerId())
+    {
+      break;
+    }
+    iterPic++;
+  }
+
+  CHECK(!(rpcPic != NULL), "Unspecified error");
+  CHECK(!(rpcPic->getPOC() == pocCurr), "Unspecified error");
+#if DECODER_PRED
+  (**iterPicYuvRec) = rpcPic->getPredBuf2();
+#else
+  (**iterPicYuvRec) = rpcPic->getRecoBuf();
+#endif
   return;
 }
 

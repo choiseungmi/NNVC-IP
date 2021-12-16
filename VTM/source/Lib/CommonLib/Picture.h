@@ -122,6 +122,14 @@ struct Picture : public UnitArea
   const CPelBuf     getPredBuf(const CompArea &blk) const;
          PelUnitBuf getPredBuf(const UnitArea &unit);
   const CPelUnitBuf getPredBuf(const UnitArea &unit) const;
+#if DECODER_PRED
+  PelBuf            getPredBuf2(const CompArea &blk);
+  const CPelBuf     getPredBuf2(const CompArea &blk) const;
+  PelUnitBuf        getPredBuf2(const UnitArea &unit);
+  const CPelUnitBuf getPredBuf2(const UnitArea &unit) const;
+  PelUnitBuf        getPredBuf2();
+  const CPelUnitBuf getPredBuf2() const;
+#endif
 
          PelBuf     getResiBuf(const CompArea &blk);
   const CPelBuf     getResiBuf(const CompArea &blk) const;

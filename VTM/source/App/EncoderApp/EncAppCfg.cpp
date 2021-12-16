@@ -740,6 +740,7 @@ bool EncAppCfg::parseCfg( int argc, char* argv[] )
   ("InputPathPrefix,-ipp",                            inputPathPrefix,                             string(""), "pathname to prepend to input filename")
   ("BitstreamFile,b",                                 m_bitstreamFileName,                         string(""), "Bitstream output file name")
   ("ReconFile,o",                                     m_reconFileName,                             string(""), "Reconstructed YUV output file name")
+  ("PredictorFile,op",                                     m_predictorFileName,                             string(""), "Predictor YUV output file name")
   ("SourceWidth,-wdt",                                m_iSourceWidth,                                       0, "Source picture width")
   ("SourceHeight,-hgt",                               m_iSourceHeight,                                      0, "Source picture height")
   ("InputBitDepth",                                   m_inputBitDepth[CHANNEL_TYPE_LUMA],                   8, "Bit-depth of input file")
@@ -3598,6 +3599,8 @@ void EncAppCfg::xPrintParameter()
   msg( DETAILS, "Input          File                    : %s\n", m_inputFileName.c_str() );
   msg( DETAILS, "Bitstream      File                    : %s\n", m_bitstreamFileName.c_str() );
   msg( DETAILS, "Reconstruction File                    : %s\n", m_reconFileName.c_str() );
+  msg(DETAILS, "Reconstruction Prediction File                    : %s\n", m_predictorFileName.c_str());
+
   msg( DETAILS, "Real     Format                        : %dx%d %gHz\n", m_iSourceWidth - m_confWinLeft - m_confWinRight, m_iSourceHeight - m_confWinTop - m_confWinBottom, (double)m_iFrameRate / m_temporalSubsampleRatio );
   msg( DETAILS, "Internal Format                        : %dx%d %gHz\n", m_iSourceWidth, m_iSourceHeight, (double)m_iFrameRate / m_temporalSubsampleRatio );
   msg( DETAILS, "Sequence PSNR output                   : %s\n", ( m_printMSEBasedSequencePSNR ? "Linear average, MSE-based" : "Linear average only" ) );

@@ -828,6 +828,9 @@ void DecLib::xCreateLostPicture( int iLostPoc, const int layerId )
     {
       msg( INFO, "copying picture %d to %d (%d)\n",rpcPic->getPOC() ,iLostPoc,m_apcSlicePilot->getPOC());
       cFillPic->getRecoBuf().copyFrom( rpcPic->getRecoBuf() );
+#if DECODER_PRED
+      cFillPic->getPredBuf2().copyFrom(rpcPic->getPredBuf2());
+#endif
       break;
     }
   }

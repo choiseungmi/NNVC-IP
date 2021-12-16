@@ -885,7 +885,7 @@ void EncApp::xInitLibCfg()
   m_cEncLib.setNumRefLayers                                       ( m_numRefLayers );
 }
 
-void EncApp::xCreateLib( std::list<PelUnitBuf*>& recBufList, const int layerId )
+void EncApp::xCreateLib(std::list<PelUnitBuf *> &recBufList, std::list<PelUnitBuf *> &predcBufList, const int layerId)
 {
   // Video I/O
   m_cVideoIOYuvInputFile.open( m_inputFileName,     false, m_inputBitDepth, m_MSBExtendedBitDepth, m_internalBitDepth );  // read  mode
@@ -909,9 +909,11 @@ void EncApp::xCreateLib( std::list<PelUnitBuf*>& recBufList, const int layerId )
     }
 
     std::string reconFileName = m_reconFileName;
+    std::string predictorFileName = m_predictorFileName;
     if( m_reconFileName.compare( "/dev/null" ) &&  (m_maxLayers > 1) )
     {
       size_t pos = reconFileName.find_last_of('.');
+      size_t pos2 = predictorFileName.find_last_of('.');
       if (pos != string::npos)
       {
         reconFileName.insert( pos, std::to_string( layerId ) );
@@ -920,8 +922,17 @@ void EncApp::xCreateLib( std::list<PelUnitBuf*>& recBufList, const int layerId )
       {
         reconFileName.append( std::to_string( layerId ) );
       }
+      if (pos2 != string::npos)
+      {
+        predictorFileName.insert(pos, std::to_string(layerId));
+      }
+      else
+      {
+        predictorFileName.append(std::to_string(layerId));
+      }
     }
     m_cVideoIOYuvReconFile.open( reconFileName, true, m_outputBitDepth, m_outputBitDepth, m_internalBitDepth );  // write mode
+    m_cVideoIOYuvPredictorFile.open(predictorFileName, true, m_outputBitDepth, m_outputBitDepth, m_internalBitDepth);
   }
 
   // create the encoder
@@ -930,7 +941,8 @@ void EncApp::xCreateLib( std::list<PelUnitBuf*>& recBufList, const int layerId )
   // create the output buffer
   for( int i = 0; i < (m_iGOPSize + 1 + (m_isField ? 1 : 0)); i++ )
   {
-    recBufList.push_back( new PelUnitBuf );
+    recBufList.push_back(new PelUnitBuf);
+    predcBufList.push_back(new PelUnitBuf);
   }
 }
 
@@ -939,6 +951,7 @@ void EncApp::xDestroyLib()
   // Video I/O
   m_cVideoIOYuvInputFile.close();
   m_cVideoIOYuvReconFile.close();
+  m_cVideoIOYuvPredictorFile.close();
 
   // Neo Decoder
   m_cEncLib.destroy();
@@ -975,7 +988,7 @@ void EncApp::createLib( const int layerIdx )
   // initialize internal class & member variables and VPS
   xInitLibCfg();
   const int layerId = m_cEncLib.getVPS() == nullptr ? 0 : m_cEncLib.getVPS()->getLayerId( layerIdx );
-  xCreateLib( m_recBufList, layerId );
+  xCreateLib(m_recBufList, m_predcBufList, layerId);
   xInitLib( m_isField );
 
   printChromaFormat();
@@ -1007,7 +1020,12 @@ void EncApp::destroyLib()
     delete p;
   }
   m_recBufList.clear();
-
+  for (auto &p: m_predcBufList)
+  {
+    delete p;
+  }
+  m_predcBufList.clear();
+  
   xDestroyLib();
 
   if( m_bitstream.is_open() )
@@ -1070,11 +1088,11 @@ bool EncApp::encodePrep( bool& eos )
   // call encoding function for one frame
   if( m_isField )
   {
-    keepDoing = m_cEncLib.encodePrep( eos, m_flush ? 0 : m_orgPic, m_flush ? 0 : m_trueOrgPic, snrCSC, m_recBufList, m_numEncoded, m_isTopFieldFirst );
+    keepDoing = m_cEncLib.encodePrep(eos, m_flush ? 0 : m_orgPic, m_flush ? 0 : m_trueOrgPic, snrCSC, m_recBufList, m_predcBufList, m_numEncoded, m_isTopFieldFirst);
   }
   else
   {
-    keepDoing = m_cEncLib.encodePrep( eos, m_flush ? 0 : m_orgPic, m_flush ? 0 : m_trueOrgPic, snrCSC, m_recBufList, m_numEncoded );
+    keepDoing = m_cEncLib.encodePrep(eos, m_flush ? 0 : m_orgPic, m_flush ? 0 : m_trueOrgPic, snrCSC, m_recBufList, m_predcBufList, m_numEncoded);
   }
 
   return keepDoing;
@@ -1088,11 +1106,11 @@ bool EncApp::encode()
   // call encoding function for one frame
   if( m_isField )
   {
-    keepDoing = m_cEncLib.encode( snrCSC, m_recBufList, m_numEncoded, m_isTopFieldFirst );
+    keepDoing = m_cEncLib.encode(snrCSC, m_recBufList, m_predcBufList, m_numEncoded, m_isTopFieldFirst);
   }
   else
   {
-    keepDoing = m_cEncLib.encode( snrCSC, m_recBufList, m_numEncoded );
+    keepDoing = m_cEncLib.encode(snrCSC, m_recBufList, m_predcBufList, m_numEncoded);
   }
 
 #if JVET_O0756_CALCULATE_HDRMETRICS
@@ -1105,7 +1123,8 @@ bool EncApp::encode()
     // write bistream to file if necessary
     if( m_numEncoded > 0 )
     {
-      xWriteOutput( m_numEncoded, m_recBufList );
+      xWriteOutput(m_numEncoded, m_recBufList);
+      xWritePredOutput(m_numEncoded, m_predcBufList);
     }
     // temporally skip frames
     if( m_temporalSubsampleRatio > 1 )
@@ -1188,6 +1207,70 @@ void EncApp::xWriteOutput( int iNumEncoded, std::list<PelUnitBuf*>& recBufList )
   }
 }
 
+void EncApp::xWritePredOutput(int iNumEncoded, std::list<PelUnitBuf *> &recBufList)
+{
+  const InputColourSpaceConversion ipCSC =
+    (!m_outputInternalColourSpace) ? m_inputColourSpaceConvert : IPCOLOURSPACE_UNCHANGED;
+  std::list<PelUnitBuf *>::iterator iterPicYuvRec = recBufList.end();
+  int                               i;
+
+  for (i = 0; i < iNumEncoded; i++)
+  {
+    --iterPicYuvRec;
+  }
+
+  if (m_isField)
+  {
+    // Reinterlace fields
+    for (i = 0; i < iNumEncoded / 2; i++)
+    {
+      const PelUnitBuf *pcPicYuvRecTop    = *(iterPicYuvRec++);
+      const PelUnitBuf *pcPicYuvRecBottom = *(iterPicYuvRec++);
+
+      if (!m_predictorFileName.empty())
+      {
+        m_cVideoIOYuvPredictorFile.write(*pcPicYuvRecTop, *pcPicYuvRecBottom, ipCSC,
+                                         false,   // TODO: m_packedYUVMode,
+                                         m_confWinLeft, m_confWinRight, m_confWinTop, m_confWinBottom,
+                                         NUM_CHROMA_FORMAT, m_isTopFieldFirst);
+      }
+    }
+  }
+  else
+  {
+    for (i = 0; i < iNumEncoded; i++)
+    {
+      const PelUnitBuf *pcPicYuvRec = *(iterPicYuvRec++);
+      if (!m_predictorFileName.empty())
+      {
+#if JVET_R0058
+        if (m_cEncLib.isResChangeInClvsEnabled() && m_cEncLib.getUpscaledOutput())
+#else
+        if (m_cEncLib.isRPREnabled() && m_cEncLib.getUpscaledOutput())
+#endif
+        {
+          const SPS &sps = *m_cEncLib.getSPS(0);
+          const PPS &pps =
+            *m_cEncLib.getPPS((sps.getMaxPicWidthInLumaSamples() != pcPicYuvRec->get(COMPONENT_Y).width
+                               || sps.getMaxPicHeightInLumaSamples() != pcPicYuvRec->get(COMPONENT_Y).height)
+                                ? ENC_PPS_ID_RPR
+                                : 0);
+
+          m_cVideoIOYuvPredictorFile.writeUpscaledPicture(sps, pps, *pcPicYuvRec, ipCSC, m_packedYUVMode,
+                                                          m_cEncLib.getUpscaledOutput(), NUM_CHROMA_FORMAT,
+                                                          m_bClipOutputVideoToRec709Range);
+        }
+        else
+        {
+          m_cVideoIOYuvPredictorFile.write(pcPicYuvRec->get(COMPONENT_Y).width, pcPicYuvRec->get(COMPONENT_Y).height,
+                                           *pcPicYuvRec, ipCSC, m_packedYUVMode, m_confWinLeft, m_confWinRight,
+                                           m_confWinTop, m_confWinBottom, NUM_CHROMA_FORMAT,
+                                           m_bClipOutputVideoToRec709Range);
+        }
+      }
+    }
+  }
+}
 
 void EncApp::outputAU( const AccessUnit& au )
 {

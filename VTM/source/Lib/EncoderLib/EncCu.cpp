@@ -315,6 +315,8 @@ void printPUInfo(const CodingStructure &bestCS) {
       }
     }
 
+     //const CPelBuf predBuf = cs.getPredBuf(area);   
+     
     printf("INFO-PU-INTRA_MODE:%3d-X:%5d-Y:%5d-width:%3d-height:%3d", pu->intraDir[0], pu->lx(), pu->ly(), pu->lwidth(),
            pu->lheight());
     if (above_available == true)
@@ -334,6 +336,7 @@ void printPUInfo(const CodingStructure &bestCS) {
       printf("-left:%d:%3d:%3d", 0, left_refPos.x, left_refPos.y);
     }
     printf("\n");
+
   }
 }
 
