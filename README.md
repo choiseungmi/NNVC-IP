@@ -43,7 +43,6 @@ Code explanation
 #### The Directory Structure
 <span style="color:yellow">local directory settings</span>    
 public directory settings   
-```
 .
 ├── README.md
 ├── .gitignore
@@ -77,8 +76,7 @@ public directory settings
 ├── make_CTC_VTM_bat.py       // make vtm run bat file code for Test sequence 
 ├── train.py              // proposed model train code
 ├── train_cluster.py      // cluster model train code
-└── util.py               // utils code
-```   
+└── util.py               // utils code   
 
 #### 명령어
 ```python
