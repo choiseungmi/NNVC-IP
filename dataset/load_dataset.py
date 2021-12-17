@@ -128,30 +128,3 @@ class TAPNN_pred(Dataset):
         pred = self.transform(pred).float()
 
         return above, left, y, pred, self.samples[idx]
-
-class ClusterDataset(Dataset):
-    def __init__(self, root, h, w, transform):
-        self.root = root
-        self.above_path = os.path.join(self.root, "above")
-        self.left_path = os.path.join(self.root, "left")
-        self.y_path = os.path.join(self.root, "y")
-
-        write_list(self.above_path, self.left_path, self.y_path, h, w)
-        self.samples = check_list(self.y_path, False)
-        self.transform = transform
-
-    def __len__(self) -> int:
-        return len(self.samples)
-
-    def __getitem__(self, idx: int) -> Tuple[Tensor, int]:
-        seq = self.samples[idx]
-        above = np.int8(np.load(os.path.join(self.above_path, seq)))
-        left = np.int8(np.load(os.path.join(self.left_path, seq)))
-        picture = np.zeros((above.shape[1], above.shape[1]), np.uint8)
-        picture[:above.shape[0],:above.shape[1]] = above
-        picture[above.shape[0]:, :above.shape[0]] = left
-
-        picture = self.transform(picture).float()
-        pseudolabels = [idx] * 8
-
-        return picture, pseudolabels

@@ -15,7 +15,7 @@ import os
 import numpy as np
 import config
 
-from cluster import load_cluster
+from train_cluster import load_cluster
 from models.tapnn import TextureAdaptivePNN, block_size
 from dataset.load_dataset import TAPNN, TAPNN_pred
 from util import AverageMeter, CSVLogger
@@ -155,18 +155,6 @@ def save_image(root, seq, y, pred, out):
     torchvision.utils.save_image(y, y_path)
     torchvision.utils.save_image(pred, pred_path)
     torchvision.utils.save_image(out, out_path)
-
-    # y = np.reshape(y, (33, 33))
-    # im = Image.fromarray(y)
-    # im.save(y_path)
-    # y = np.reshape(pred, (33, 33))
-    # im = Image.fromarray(y)
-    # im.save(pred_path)
-    # y = np.reshape(out, (33, 33))
-    # im = Image.fromarray(y)
-    # im.save(out_path)
-
-
 
 if __name__ == "__main__":
     main(sys.argv[1:])

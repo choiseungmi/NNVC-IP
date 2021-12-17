@@ -13,7 +13,7 @@ from torch.utils.tensorboard import SummaryWriter
 
 import config
 
-from cluster import load_cluster
+from train_cluster import load_cluster
 from models.tapnn import TextureAdaptivePNN, block_size
 from dataset.load_dataset import TAPNN
 from util import AverageMeter, CSVLogger

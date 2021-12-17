@@ -5,6 +5,7 @@ valid_data/
 log_csv/
 runs/
 temp/
+output/
 *.pyc
 *.bat
 *.pth
