@@ -24,8 +24,8 @@ Train, Test, Valid
 Reference Software
 -------------
 VVC (VTM 9.0): [Download VTM][Fraunhofer], [Download Documents][Fraunhofer_Documents]
-[Fraunhofer]: https://vcgit.hhi.fraunhofer.de/jvet/VVCSoftware_VTM/-/tags "Download VTM"
-[Fraunhofer_Documents]:  https://jvet.hhi.fraunhofer.de/ "Common Test Condition"
+[Download VTM][Fraunhofer]: https://vcgit.hhi.fraunhofer.de/jvet/VVCSoftware_VTM/-/tags "Download VTM"
+[Download Documents][Fraunhofer_Documents]:  https://jvet.hhi.fraunhofer.de/ "Common Test Condition"
 
 Our Proposed Method
 -------------
