@@ -58,9 +58,9 @@ public directory settings
 |   |   └── *.bat</span>        // VTM run bat files
 |   └── ...
 ├── checkpoint          // models folder
-├── {train_data}        // 전처리를 마친 train data folder
-├── {valid_data}        // 전처리를 마친 validation data folder
-├── {anchor_data}       // 전처리를 마친 inference data folder
+├── {train_data}        // 전처리를 마친 train dataset folder
+├── {valid_data}        // 전처리를 마친 validation dataset folder
+├── {anchor_data}       // 전처리를 마친 inference dataset folder
 ├── {runs}              // train tensorboard log folder
 ├── {log_csv}           // train csv log folder
 ├── dataset
@@ -86,4 +86,7 @@ python train.py --epochs [epochs] -lr [learning rate] --batch-size [batch size] 
 ```
 ```python
 python train_cluster.py --epochs [epochs] -lr [learning rate] --batch-size [batch size] -hgt [block height] - wdt [block width] -q [quality] --cuda --save     
+```
+```python
+python inference.py --batch-size [batch size] -hgt [block height] - wdt [block width] -q [quality] --clusterk [index of cluster] --cuda   
 ```
