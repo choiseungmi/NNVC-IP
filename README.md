@@ -24,7 +24,6 @@ Train, Test, Valid
 Reference Software
 -------------
 VVC (VTM 9.0):
-
 [Download VTM](https://vcgit.hhi.fraunhofer.de/jvet/VVCSoftware_VTM/-/tags)
 [Download Documents](https://jvet.hhi.fraunhofer.de/)
 
