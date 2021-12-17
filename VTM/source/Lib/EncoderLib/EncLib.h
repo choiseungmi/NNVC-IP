@@ -164,7 +164,9 @@ public:
   PLTBuf                    m_palettePredictorSyncState;
 
 protected:
-  void  xGetNewPicBuffer  ( std::list<PelUnitBuf*>& rcListPicYuvRecOut, Picture*& rpcPic, int ppsId ); ///< get picture buffer which will be processed. If ppsId<0, then the ppsMap will be queried for the first match.
+  void xGetNewPicBuffer(std::list<PelUnitBuf *> &rcListPicYuvRecOut, std::list<PelUnitBuf *> &predListPicYuvRecOut,
+                        Picture *&rpcPic, int ppsId);   ///< get picture buffer which will be processed. If ppsId<0,
+                                                        ///< then the ppsMap will be queried for the first match.
   void  xInitDCI(DCI& dci, const SPS& sps); ///< initialize Decoding Capability Information (DCI) from encoder options
   void  xInitVPS( const SPS& sps ); ///< initialize VPS from encoder options
   void  xInitSPS( SPS& sps );       ///< initialize SPS from encoder options
@@ -265,21 +267,21 @@ public:
   bool encodePrep( bool bEos,
                PelStorage* pcPicYuvOrg,
                PelStorage* pcPicYuvTrueOrg, const InputColourSpaceConversion snrCSC, // used for SNR calculations. Picture in original colour space.
-               std::list<PelUnitBuf*>& rcListPicYuvRecOut,
+    std::list<PelUnitBuf *> &rcListPicYuvRecOut, std::list<PelUnitBuf *> &predListPicYuvRecOut,
                int& iNumEncoded );
 
   bool encode( const InputColourSpaceConversion snrCSC, // used for SNR calculations. Picture in original colour space.
-               std::list<PelUnitBuf*>& rcListPicYuvRecOut,
+              std::list<PelUnitBuf *> &rcListPicYuvRecOut, std::list<PelUnitBuf *> &predListPicYuvRecOut,
                int& iNumEncoded );
 
   bool encodePrep( bool bEos,
                PelStorage* pcPicYuvOrg,
                PelStorage* pcPicYuvTrueOrg, const InputColourSpaceConversion snrCSC, // used for SNR calculations. Picture in original colour space.
-               std::list<PelUnitBuf*>& rcListPicYuvRecOut,
+    std::list<PelUnitBuf *> &rcListPicYuvRecOut, std::list<PelUnitBuf *> &predListPicYuvRecOut,
                int& iNumEncoded, bool isTff );
 
   bool encode( const InputColourSpaceConversion snrCSC, // used for SNR calculations. Picture in original colour space.
-               std::list<PelUnitBuf*>& rcListPicYuvRecOut,
+              std::list<PelUnitBuf *> &rcListPicYuvRecOut, std::list<PelUnitBuf *> &predListPicYuvRecOut,
                int& iNumEncoded, bool isTff );
 
 

@@ -50,6 +50,8 @@
 #include <assert.h>
 #include <cassert>
 
+#define DECODER_PRED 1
+
 //########### place macros to be removed in next cycle below this line ###############
 #define RETRAIN_CABAC                                     1 // CABAC initial values retrained on VTM-9.0rc1
 

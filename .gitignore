@@ -1,1 +1,12 @@
 *.idea
+config.py
+data/
+valid_data/
+log_csv/
+runs/
+temp/
+*.pyc
+*.bat
+*.pth
+*.pkl
+*.tar
