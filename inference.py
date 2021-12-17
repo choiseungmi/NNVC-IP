@@ -3,40 +3,29 @@ import random
 import shutil
 import sys
 import time
+from tkinter import Image
+
 import torch
 import torch.nn as nn
 import torch.optim as optim
+import torchvision
 from torch.utils.data import DataLoader
 from torchvision import transforms
 import os
-from torch.utils.tensorboard import SummaryWriter
-
+import numpy as np
 import config
 
 from cluster import load_cluster
 from models.tapnn import TextureAdaptivePNN, block_size
-from dataset.load_dataset import TAPNN
+from dataset.load_dataset import TAPNN, TAPNN_pred
 from util import AverageMeter, CSVLogger
 
+import pandas as pd
 
 def parse_args(argv):
     parser = argparse.ArgumentParser(description="Example training script.")
     parser.add_argument(
         "-d", "--dataset", type=str, help="Training dataset"
-    )
-    parser.add_argument(
-        "-e",
-        "--epochs",
-        default=100,
-        type=int,
-        help="Number of epochs (default: %(default)s)",
-    )
-    parser.add_argument(
-        "-lr",
-        "--learning-rate",
-        default=1e-4,
-        type=float,
-        help="Learning rate (default: %(default)s)",
     )
     parser.add_argument(
         "-n",
@@ -56,35 +45,55 @@ def parse_args(argv):
         help="Quality (default: %(default)s)",
     )
     parser.add_argument("--cuda", action="store_true", help="Use cuda")
-    parser.add_argument("--save", action="store_true", help="Save model to disk")
     parser.add_argument(
         "--seed", type=float, help="Set random seed for reproducibility"
     )
     parser.add_argument('--clusterk', type=int, default=0, help='cluster index (default: 0)')
-    parser.add_argument("--checkpoint", type=str, help="Path to a checkpoint")
     parser.add_argument("-hgt", "--height", type=int, default=32, help="block height")
     parser.add_argument("-wdt", "--width", type=int, default=32, help="block width")
     args = parser.parse_args(argv)
     return args
 
-def test_epoch(test_dataloader, model, criterion):
+def test_epoch(test_dataloader, model, criterion, road_file_path, k, save_img_path):
     model.eval()
     device = next(model.parameters()).device
     loss = AverageMeter()
+    pred_loss = AverageMeter()
+
+    road_df = pd.read_csv(road_file_path)
+
     with torch.no_grad():
-        for (a, l, y) in test_dataloader:
+        for (a, l, y, pred, filename) in test_dataloader:
             a = a.to(device)
             l = l.cuda()
             y = y.cuda()
+            pred = pred.cuda()
             out = model(a, l)
             out = out.view(y.shape)
+            filename = filename[0]
+
+            avg = road_df.loc[road_df.files == filename]['avg'].values[0]
+            out_criterion = criterion(out, y)
+            pred_criterion = criterion(pred, y)
+
+            road_df.loc[road_df.files == filename, 'loss'] = out_criterion.item()
+
+            road_df.loc[road_df.files == filename, 'pred_loss'] = pred_criterion.item()
+
+            road_df.loc[road_df.files == filename, 'k'] = k
+            road_df.to_csv(road_file_path, index=False)
+
+            loss.update(out_criterion)
+            pred_loss.update(pred_criterion)
+
+            save_image(save_img_path, filename[:-4]+".png", y, pred, out)
 
     del a
     del l
     del y
     # GPU memory delete
     torch.cuda.empty_cache()
-    return loss.avg.item()
+    return loss.avg.item(), pred_loss.avg.item()
 
 def main(argv):
     args = parse_args(argv)
@@ -94,17 +103,15 @@ def main(argv):
     ############################################### load dataset ##############################################
     if args.dataset is None:
         args.dataset = config.train_numpy_path
-    train_transforms = transforms.Compose(
-         [transforms.ToTensor()]  # numpy이미지에서 torch이미지로 변경
-    )
     test_transforms = transforms.Compose(
         [transforms.ToTensor()]
     )
     path_model_cluster = os.path.join(config.cluster_checkpoint, str(args.height)+"x"+str(args.width) + "_" + str(args.quality) + '.pkl')
     km = load_cluster(path_model_cluster)
 
-    test_dataset = TAPNN(os.path.join(config.valid_numpy_path, str(args.quality), str(args.height)+"x"+str(args.width)), args.height, args.width,
+    test_dataset = TAPNN_pred(os.path.join(config.inference_numpy_path, str(args.quality), str(args.height)+"x"+str(args.width)), args.height, args.width,
                          transform=test_transforms, km=km, k=args.clusterk)
+
     device = "cuda" if torch.cuda.is_available() else "cpu"
     print(torch.cuda.is_available())
     print(device)
@@ -123,61 +130,43 @@ def main(argv):
     model = TextureAdaptivePNN(False, h, w)
     model.cuda()
 
-    criterion = nn.L1Loss()
+    criterion = nn.MSELoss()
 
-    filename = "log_csv\\"+str(args.height)+"x"+str(args.width)+"_" + str(args.quality) +"_" + str(args.clusterk) + ".csv"
-    csv_logger = CSVLogger(
-        fieldnames=['epoch', 'train_loss', 'test_loss'],
-        filename=filename)
-    writer = SummaryWriter()
+    checkpoint = torch.load("checkpoint\\best_loss_" +str(args.height)+"x"+str(args.width)+"_" + str(args.quality) +"_" + str(args.clusterk)+".pth.tar", map_location=device)
+    model.load_state_dict(checkpoint["state_dict"])
 
-    last_epoch = 0
-    if args.checkpoint:  # load from previous checkpoint
-        print("Loading", args.checkpoint)
-        checkpoint = torch.load(args.checkpoint, map_location=device)
-        last_epoch = checkpoint["epoch"] + 1
-        model.load_state_dict(checkpoint["state_dict"])
+    start = time.time()
+    dp_path = os.path.join(config.inference_numpy_path, str(args.quality), str(args.height)+"x"+str(args.width), "seq_info.csv")
+    img_path = os.path.join(config.inference_numpy_path, str(args.quality), str(args.height)+"x"+str(args.width), "image")
 
-    best_loss = float("inf")
-    for epoch in range(last_epoch, args.epochs):
-        start = time.time()
-        print(f"Learning rate: {optimizer.param_groups[0]['lr']}")
-        train_loss = train_one_epoch(
-            model,
-            criterion,
-            train_dataloader,
-            optimizer,
-            epoch,
-        )
-        loss = test_epoch(epoch, test_dataloader, model, criterion)
-        lr_scheduler.step(loss)
-        print(f"Train epoch {epoch}: "
-                f'\tTrain Loss: {train_loss:.3f}'
-              f'\tTest Loss: {loss:.3f}')
+    loss, pred_loss = test_epoch(test_dataloader, model, criterion, dp_path, args.clusterk, img_path)
 
-        writer.add_scalars("Loss_"+str(args.quality)+"_"+str(args.clusterk), {'train': train_loss,
-                                    'valid': loss}, epoch)
+    print(f'\tTest Loss: {loss:.3f}'
+          f'\tPred Loss: {pred_loss:.3f}')
 
-        row = {'epoch': str(epoch), 'train_loss': str(train_loss), 'test_loss': str(loss)}
-        csv_logger.writerow(row)  ###
-        is_best = loss < best_loss
-        best_loss = min(loss, best_loss)
+    print(f"Total TIme: {time.time() - start}")
 
-        if args.save:
-            save_checkpoint(
-                {
-                    "epoch": epoch,
-                    "state_dict": model.state_dict(),
-                    "loss": loss,
-                    "optimizer": optimizer.state_dict(),
-                    "lr_scheduler": lr_scheduler.state_dict(),
-                },
-                is_best,
-                str(args.quality), str(args.height), str(args.width), str(args.clusterk)
-            )
-        print(f"Total TIme: {time.time() - start}")
-    csv_logger.close()  ###
-    writer.flush()
+def save_image(root, seq, y, pred, out):
+
+    y_path = os.path.join(root, "y", seq)
+    pred_path = os.path.join(root, "pred", seq)
+    out_path = os.path.join(root, "out", seq)
+
+    torchvision.utils.save_image(y, y_path)
+    torchvision.utils.save_image(pred, pred_path)
+    torchvision.utils.save_image(out, out_path)
+
+    # y = np.reshape(y, (33, 33))
+    # im = Image.fromarray(y)
+    # im.save(y_path)
+    # y = np.reshape(pred, (33, 33))
+    # im = Image.fromarray(y)
+    # im.save(pred_path)
+    # y = np.reshape(out, (33, 33))
+    # im = Image.fromarray(y)
+    # im.save(out_path)
+
+
 
 if __name__ == "__main__":
     main(sys.argv[1:])

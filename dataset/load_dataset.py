@@ -100,6 +100,35 @@ class TAPNN(Dataset):
 
         return above, left, y
 
+class TAPNN_pred(Dataset):
+    def __init__(self, root, h, w, transform, km, k):
+        self.root = root
+        self.above_path = os.path.join(self.root, "above")
+        self.left_path = os.path.join(self.root, "left")
+        self.y_path = os.path.join(self.root, "y")
+        self.pred_path = os.path.join(self.root, "pred")
+
+        prepare_image(self.root, h, w, km)
+        self.samples = check_list_cluster(self.y_path, k)
+        self.transform = transform
+
+    def __len__(self) -> int:
+        return len(self.samples)
+
+    def __getitem__(self, idx: int) -> Tuple[Tensor, Tensor, Tensor, Tensor, str]:
+        seq = self.samples[idx]
+        above = np.int8(np.load(os.path.join(self.above_path, seq)))
+        left = np.int8(np.load(os.path.join(self.left_path, seq)))
+        y = np.int8(np.load(os.path.join(self.y_path, seq)))
+        pred = np.int8(np.load(os.path.join(self.pred_path, seq)))
+
+        above = self.transform(above).float()
+        left = self.transform(left).float()
+        y = self.transform(y).float()
+        pred = self.transform(pred).float()
+
+        return above, left, y, pred, self.samples[idx]
+
 class ClusterDataset(Dataset):
     def __init__(self, root, h, w, transform):
         self.root = root
