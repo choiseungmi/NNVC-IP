@@ -1,6 +1,7 @@
 # NNVC-IP
 경희대학교 컴퓨터공학과 캡스톤디자인2
-주제: Neural Network based Intra Prediction for post-VVC
+
+[주제] Neural Network based Intra Prediction for post-VVC
 
 Team
 -------------
