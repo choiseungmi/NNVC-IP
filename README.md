@@ -46,10 +46,9 @@ Our Proposed Method
 Performance Test
 -------------
 ### MSE Loss
-![mse_loss](./readme_images/mse_loss.jpg)    
+![mse_loss](./readme_images/mse_loss.JPG)    
 ### MSE Loss Graph
-![graph1](./readme_images/graph1.png)    
-![graph2](./readme_images/graph2.png)    
+![graph1](./readme_images/graph1.png)  |  ![graph2](./readme_images/graph2.png)    
 
 Code explanation
 -------------
