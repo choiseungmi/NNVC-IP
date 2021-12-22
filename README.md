@@ -48,7 +48,7 @@ Performance Test
 ### MSE Loss
 ![mse_loss](./readme_images/mse_loss.JPG)    
 ### MSE Loss Graph
-![graph1](./readme_images/graph1.JPG) | ![graph2](./readme_images/graph2.JPG)   
+![graph1](./readme_images/graph1.JPG) ![graph2](./readme_images/graph2.JPG)   
 
 Code explanation
 -------------
