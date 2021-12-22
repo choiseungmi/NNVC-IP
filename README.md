@@ -31,17 +31,25 @@ VVC (VTM 9.0):
 
 Our Proposed Method
 -------------
-### Process
+### Encoder Process
+1. 주변 블록 전처리
+2. 주변 블록 군집화 및 모델을 사용한 예측 생성
+3. 예측 후처리
 
-### Diagram
+### Training Process
+1. 원본 영상 준비
+2. 본 프로젝트 파일의 VTM을 통해 원본 영상에 대한 best mode 정보, 예측 신호, 복호화된 주변 영상 획득
+3. 1, 2번을 활용한 데이터셋 전처리
+4. 군집 모델 및 생성 모델 학습
+5. 후처리 및 테스트
 
 Performance Test
 -------------
 ### MSE Loss
-![mse_loss](./readme_image/mse_loss.jpg)    
+![mse_loss](./readme_images/mse_loss.jpg)    
 ### MSE Loss Graph
-![graph1](./readme_image/graph1.png)    
-![graph2](./readme_image/graph2.png)    
+![graph1](./readme_images/graph1.png)    
+![graph2](./readme_images/graph2.png)    
 
 Code explanation
 -------------
